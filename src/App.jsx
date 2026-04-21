@@ -1,7 +1,29 @@
 import { useState, useEffect, useRef } from "react";
 
-const load = (k, fallback) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; } catch { return fallback; } };
-const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+const SUPABASE_URL = "https://oeentaqyqzulymbannrd.supabase.co";
+const SUPABASE_KEY = "sb_publishable_trJSD67DmaZ394X98wBNeg_-nFBdiRR";
+
+const sbFetch = async (id) => {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/dados?id=eq.${id}&select=valor`, {
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+  });
+  const data = await res.json();
+  return data?.[0]?.valor ?? null;
+};
+
+const sbSave = async (id, valor) => {
+  await fetch(`${SUPABASE_URL}/rest/v1/dados`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: "resolution=merge-duplicates"
+    },
+    body: JSON.stringify({ id, valor })
+  });
+};
+
 const todayStr = () => new Date().toISOString().split("T")[0];
 
 const DEFAULT_CONFIG = { brandName: "Mentoria Psi", brandSub: "Alto Fluxo", accentColor: "#e2b96f", bgColor: "#12121f", logoUrl: null };
@@ -16,19 +38,36 @@ const THEMES = [
 ];
 
 export default function App() {
-  const [config, setConfig] = useState(() => load("psi_cfg", DEFAULT_CONFIG));
-  const [mentees, setMentees] = useState(() => load("psi_mentees", DEFAULT_MENTEES));
-  const [taskData, setTaskData] = useState(() => load("psi_tasks", {}));
+  const [config, setConfig] = useState(DEFAULT_CONFIG);
+  const [mentees, setMentees] = useState(DEFAULT_MENTEES);
+  const [taskData, setTaskData] = useState({});
   const [role, setRole] = useState(null);
   const [menteeId, setMenteeId] = useState(null);
   const [view, setView] = useState("home");
   const [ready, setReady] = useState(false);
+  const [loading, setLoading] = useState(true);
   const logoRef = useRef();
 
-  useEffect(() => { setTimeout(() => setReady(true), 80); }, []);
-  useEffect(() => { save("psi_cfg", config); }, [config]);
-  useEffect(() => { save("psi_mentees", mentees); }, [mentees]);
-  useEffect(() => { save("psi_tasks", taskData); }, [taskData]);
+  // Load from Supabase on mount
+  useEffect(() => {
+    const loadAll = async () => {
+      setLoading(true);
+      const cfg = await sbFetch("config");
+      const men = await sbFetch("mentees");
+      const tasks = await sbFetch("tasks");
+      if (cfg) setConfig(cfg);
+      if (men) setMentees(men);
+      if (tasks) setTaskData(tasks);
+      setLoading(false);
+      setTimeout(() => setReady(true), 80);
+    };
+    loadAll();
+  }, []);
+
+  // Save to Supabase on change
+  useEffect(() => { if (!loading) sbSave("config", config); }, [config]);
+  useEffect(() => { if (!loading) sbSave("mentees", mentees); }, [mentees]);
+  useEffect(() => { if (!loading) sbSave("tasks", taskData); }, [taskData]);
 
   const { accentColor: accent, bgColor: bg, brandName, brandSub, logoUrl } = config;
   const text = "#f0ece0";
@@ -48,13 +87,6 @@ export default function App() {
   const addMentee = () => setMentees(p => [...p, { id: Date.now(), name: `Mentorado ${p.length + 1}` }]);
   const renameMentee = (id, name) => setMentees(p => p.map(m => m.id === id ? { ...m, name } : m));
   const delMentee = (id) => { setMentees(p => p.filter(m => m.id !== id)); if (menteeId === id) setMenteeId(null); };
-
-  // styles factory
-  const S = (extra = {}) => ({
-    fontFamily: "'Palatino Linotype','Book Antiqua',Palatino,serif",
-    color: text,
-    ...extra,
-  });
 
   const card = { background: `${accent}0d`, border: `1px solid ${accent}22`, borderRadius: 11, padding: "13px 14px", marginBottom: 10, display: "flex", alignItems: "flex-start", gap: 11, cursor: "pointer" };
   const inp = { width: "100%", background: `${accent}0e`, border: `1px solid ${accent}28`, borderRadius: 8, padding: "11px 13px", color: text, fontSize: 14, fontFamily: "'Palatino Linotype',serif", outline: "none", boxSizing: "border-box", marginBottom: 8 };
@@ -87,7 +119,17 @@ export default function App() {
     </div>
   );
 
-  // LOGIN
+  if (loading) {
+    return (
+      <div style={{ minHeight: "100vh", background: bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Palatino Linotype',serif", color: text }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 36, marginBottom: 16 }}>🧠</div>
+          <div style={{ fontSize: 12, letterSpacing: 3, textTransform: "uppercase", color: accent, opacity: 0.7 }}>Carregando...</div>
+        </div>
+      </div>
+    );
+  }
+
   if (!role) {
     return (
       <div style={{ minHeight: "100vh", background: bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, fontFamily: "'Palatino Linotype',serif" }}>
@@ -114,7 +156,6 @@ export default function App() {
     );
   }
 
-  // HOME
   const HomeView = () => {
     const metas = getMetas(); const tarefas = getTarefas();
     const done = metas.filter(m => m.done).length;
@@ -154,7 +195,6 @@ export default function App() {
     );
   };
 
-  // METAS
   const MetasView = () => {
     const [txt, setTxt] = useState("");
     const metas = getMetas();
@@ -182,7 +222,6 @@ export default function App() {
     );
   };
 
-  // TAREFAS
   const TarefasView = () => {
     const [txt, setTxt] = useState("");
     const [date, setDate] = useState(todayStr());
@@ -216,7 +255,6 @@ export default function App() {
     );
   };
 
-  // HISTÓRICO
   const HistoricoView = () => {
     const metas = getMetas(); const tarefas = getTarefas();
     const md = metas.filter(m => m.done); const td = tarefas.filter(t => t.done);
@@ -255,13 +293,11 @@ export default function App() {
     );
   };
 
-  // CONFIG
   const ConfigView = () => {
     const [lc, setLc] = useState({ ...config });
     const lRef = useRef();
     return (
       <div>
-        {/* IDENTIDADE */}
         <div style={secLabel}>Identidade Visual</div>
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 12, color: text, opacity: 0.5, marginBottom: 8 }}>Logo</div>
@@ -279,12 +315,10 @@ export default function App() {
             </div>
           </div>
         </div>
-
         <div style={{ fontSize: 12, color: text, opacity: 0.5, marginBottom: 5 }}>Nome principal</div>
         <input value={lc.brandName} onChange={e => setLc(p => ({ ...p, brandName: e.target.value }))} style={inp} />
         <div style={{ fontSize: 12, color: text, opacity: 0.5, marginBottom: 5 }}>Subtítulo</div>
         <input value={lc.brandSub} onChange={e => setLc(p => ({ ...p, brandSub: e.target.value }))} style={inp} />
-
         <div style={{ fontSize: 12, color: text, opacity: 0.5, marginBottom: 10, marginTop: 4 }}>Temas prontos</div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
           {THEMES.map(t => (
@@ -295,7 +329,6 @@ export default function App() {
             </div>
           ))}
         </div>
-
         <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 11, color: text, opacity: 0.45, marginBottom: 6 }}>Cor destaque</div>
@@ -314,10 +347,7 @@ export default function App() {
             </div>
           </div>
         </div>
-
         <button onClick={() => setConfig({ ...lc })} style={primaryBtn}>✓ Salvar Aparência</button>
-
-        {/* MENTORADOS */}
         <div style={{ borderTop: `1px solid ${accent}18`, paddingTop: 20, marginTop: 8 }}>
           <div style={secLabel}>Mentorados</div>
           {mentees.map(m => (
@@ -329,8 +359,6 @@ export default function App() {
           ))}
           <button onClick={addMentee} style={ghostBtn}>+ Adicionar Mentorado</button>
         </div>
-
-        {/* DADOS */}
         <div style={{ borderTop: `1px solid ${accent}18`, paddingTop: 16, marginTop: 8 }}>
           <div style={secLabel}>Dados</div>
           <button onClick={() => { if (window.confirm("Apagar TODOS os dados? Isso não pode ser desfeito.")) { setTaskData({}); } }}
@@ -346,7 +374,6 @@ export default function App() {
 
   return (
     <div style={{ minHeight: "100vh", background: bg, color: text, fontFamily: "'Palatino Linotype','Book Antiqua',Palatino,serif", display: "flex", flexDirection: "column", maxWidth: 500, margin: "0 auto" }}>
-      {/* HEADER */}
       <div style={{ padding: "20px 20px 14px", borderBottom: `1px solid ${accent}22`, display: "flex", alignItems: "center", gap: 12 }}>
         {logoUrl
           ? <img src={logoUrl} alt="logo" style={{ width: 40, height: 40, borderRadius: 8, objectFit: "cover", border: `1px solid ${accent}38`, flexShrink: 0 }} />
@@ -357,8 +384,6 @@ export default function App() {
         </div>
         <button onClick={() => { setRole(null); setMenteeId(null); }} style={{ background: "none", border: `1px solid ${accent}28`, color: accent, borderRadius: 6, padding: "5px 11px", fontSize: 11, cursor: "pointer", opacity: 0.7 }}>Sair</button>
       </div>
-
-      {/* CONTENT */}
       <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 12px" }}>
         {view === "home" && <HomeView />}
         {view === "metas" && <MetasView />}
@@ -367,8 +392,6 @@ export default function App() {
         {view === "config" && <ConfigView />}
         <div style={{ height: 12 }} />
       </div>
-
-      {/* NAV */}
       <div style={{ display: "flex", gap: 5, padding: "10px 14px 20px", borderTop: `1px solid ${accent}18` }}>
         {navItems.map(n => (
           <button key={n.id} onClick={() => setView(n.id)} style={{
