@@ -478,7 +478,14 @@ export default function App() {
           <div style={{ fontSize: 9, letterSpacing: 4, textTransform: "uppercase", color: accent, opacity: 0.75 }}>{brandName}</div>
           <h1 style={{ fontSize: 18, fontWeight: "normal", fontStyle: "italic", margin: 0, lineHeight: 1.2 }}>{titles[view]}</h1>
         </div>
-        <button onClick={() => { setRole(null); setMenteeId(null); window.history.pushState({}, "", "/"); }} style={{ background: "none", border: `1px solid ${accent}28`, color: accent, borderRadius: 6, padding: "5px 11px", fontSize: 11, cursor: "pointer", opacity: 0.7 }}>Sair</button>
+        <button onClick={() => {
+          if (role === "mentorado") {
+            // Mentorada volta para a própria tela de login (reload do link dela)
+            window.location.reload();
+          } else {
+            setRole(null); setMenteeId(null); window.history.pushState({}, "", "/");
+          }
+        }} style={{ background: "none", border: `1px solid ${accent}28`, color: accent, borderRadius: 6, padding: "5px 11px", fontSize: 11, cursor: "pointer", opacity: 0.7 }}>Sair</button>
       </div>
       <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 12px" }}>
         {view === "home" && <HomeView />}
