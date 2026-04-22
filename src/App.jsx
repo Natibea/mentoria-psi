@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 const SUPABASE_URL = "https://oeentaqyqzulymbannrd.supabase.co";
 const SUPABASE_KEY = "sb_publishable_trJSD67DmaZ394X98wBNeg_-nFBdiRR";
@@ -25,7 +25,6 @@ const sbSave = async (id, valor) => {
 };
 
 const todayStr = () => new Date().toISOString().split("T")[0];
-
 const DEFAULT_CONFIG = { brandName: "Mentoria Psi", brandSub: "Alto Fluxo", accentColor: "#e2b96f", bgColor: "#12121f", logoUrl: null };
 const DEFAULT_MENTEES = [{ id: 1, name: "Mentorado 1" }, { id: 2, name: "Mentorado 2" }, { id: 3, name: "Mentorado 3" }];
 const THEMES = [
@@ -37,6 +36,30 @@ const THEMES = [
   { label: "Lilás", accent: "#b39ddb", bg: "#130f1f" },
 ];
 
+// Isolated text input - never causes parent re-render while typing
+function LocalInput({ onCommit, placeholder, style, multiline, rows }) {
+  const [val, setVal] = useState("");
+  const handleKey = (e) => {
+    if (e.key === "Enter" && !multiline) { onCommit(val); setVal(""); }
+  };
+  const handleBlur = () => { if (val.trim()) { onCommit(val); setVal(""); } };
+  if (multiline) return (
+    <textarea value={val} onChange={e => setVal(e.target.value)} onBlur={handleBlur}
+      placeholder={placeholder} rows={rows || 3} style={{ ...style, resize: "none" }} />
+  );
+  return <input value={val} onChange={e => setVal(e.target.value)} onKeyDown={handleKey}
+    onBlur={handleBlur} placeholder={placeholder} style={style} />;
+}
+
+// Isolated inline rename input
+function RenameInput({ initial, onSave, style }) {
+  const [val, setVal] = useState(initial);
+  useEffect(() => setVal(initial), [initial]);
+  return <input value={val} onChange={e => setVal(e.target.value)}
+    onBlur={() => onSave(val)} onKeyDown={e => e.key === "Enter" && onSave(val)}
+    style={style} />;
+}
+
 export default function App() {
   const [config, setConfig] = useState(DEFAULT_CONFIG);
   const [mentees, setMentees] = useState(DEFAULT_MENTEES);
@@ -46,15 +69,14 @@ export default function App() {
   const [view, setView] = useState("home");
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(true);
+  const saveTimer = useRef({});
   const logoRef = useRef();
 
-  // Load from Supabase on mount
   useEffect(() => {
     const loadAll = async () => {
-      setLoading(true);
-      const cfg = await sbFetch("config");
-      const men = await sbFetch("mentees");
-      const tasks = await sbFetch("tasks");
+      const [cfg, men, tasks] = await Promise.all([
+        sbFetch("config"), sbFetch("mentees"), sbFetch("tasks")
+      ]);
       if (cfg) setConfig(cfg);
       if (men) setMentees(men);
       if (tasks) setTaskData(tasks);
@@ -64,22 +86,14 @@ export default function App() {
     loadAll();
   }, []);
 
-  // Save to Supabase with debounce (1.5s after last change)
-  useEffect(() => {
-    if (loading) return;
-    const t = setTimeout(() => sbSave("config", config), 1500);
-    return () => clearTimeout(t);
-  }, [config]);
-  useEffect(() => {
-    if (loading) return;
-    const t = setTimeout(() => sbSave("mentees", mentees), 1500);
-    return () => clearTimeout(t);
-  }, [mentees]);
-  useEffect(() => {
-    if (loading) return;
-    const t = setTimeout(() => sbSave("tasks", taskData), 1500);
-    return () => clearTimeout(t);
-  }, [taskData]);
+  const debounceSave = useCallback((key, val, delay = 2000) => {
+    if (saveTimer.current[key]) clearTimeout(saveTimer.current[key]);
+    saveTimer.current[key] = setTimeout(() => sbSave(key, val), delay);
+  }, []);
+
+  useEffect(() => { if (!loading) debounceSave("config", config); }, [config, loading]);
+  useEffect(() => { if (!loading) debounceSave("mentees", mentees); }, [mentees, loading]);
+  useEffect(() => { if (!loading) debounceSave("tasks", taskData); }, [taskData, loading]);
 
   const { accentColor: accent, bgColor: bg, brandName, brandSub, logoUrl } = config;
   const text = "#f0ece0";
@@ -95,7 +109,6 @@ export default function App() {
   const addTarefa = (txt, date) => { if (txt.trim()) updField("tarefas", [...getTarefas(), { id: Date.now(), text: txt.trim(), date, done: false }]); };
   const toggleTarefa = (id) => updField("tarefas", getTarefas().map(t => t.id === id ? { ...t, done: !t.done } : t));
   const delTarefa = (id) => updField("tarefas", getTarefas().filter(t => t.id !== id));
-
   const addMentee = () => setMentees(p => [...p, { id: Date.now(), name: `Mentorado ${p.length + 1}` }]);
   const renameMentee = (id, name) => setMentees(p => p.map(m => m.id === id ? { ...m, name } : m));
   const delMentee = (id) => { setMentees(p => p.filter(m => m.id !== id)); if (menteeId === id) setMenteeId(null); };
@@ -131,42 +144,34 @@ export default function App() {
     </div>
   );
 
-  if (loading) {
-    return (
-      <div style={{ minHeight: "100vh", background: bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Palatino Linotype',serif", color: text }}>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 36, marginBottom: 16 }}>🧠</div>
-          <div style={{ fontSize: 12, letterSpacing: 3, textTransform: "uppercase", color: accent, opacity: 0.7 }}>Carregando...</div>
-        </div>
+  if (loading) return (
+    <div style={{ minHeight: "100vh", background: "#12121f", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Palatino Linotype',serif", color: "#f0ece0" }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontSize: 36, marginBottom: 16 }}>🧠</div>
+        <div style={{ fontSize: 12, letterSpacing: 3, textTransform: "uppercase", color: "#e2b96f", opacity: 0.7 }}>Carregando...</div>
       </div>
-    );
-  }
+    </div>
+  );
 
-  if (!role) {
-    return (
-      <div style={{ minHeight: "100vh", background: bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, fontFamily: "'Palatino Linotype',serif" }}>
-        <div style={{ textAlign: "center", marginBottom: 44, opacity: ready ? 1 : 0, transform: ready ? "translateY(0)" : "translateY(16px)", transition: "all 0.5s ease" }}>
-          {logoUrl
-            ? <img src={logoUrl} alt="logo" style={{ width: 68, height: 68, borderRadius: 12, objectFit: "cover", marginBottom: 16, border: `1px solid ${accent}40` }} />
-            : <div style={{ fontSize: 44, marginBottom: 14 }}>🧠</div>}
-          <div style={{ fontSize: 10, letterSpacing: 5, textTransform: "uppercase", color: accent, marginBottom: 8 }}>{brandName}</div>
-          <h1 style={{ fontSize: 26, fontWeight: "normal", fontStyle: "italic", color: text, margin: "0 0 12px" }}>{brandSub}</h1>
-          <div style={{ width: 36, height: 1, background: accent, margin: "0 auto", opacity: 0.4 }} />
-        </div>
-        <div style={{ width: "100%", maxWidth: 300 }}>
-          <p style={{ textAlign: "center", fontSize: 11, letterSpacing: 3, textTransform: "uppercase", color: text, opacity: 0.4, marginBottom: 20 }}>Entrar como</p>
-          <button onClick={() => { setRole("mentor"); setMenteeId(mentees[0]?.id || null); setView("home"); }} style={{ ...primaryBtn, marginBottom: 14 }}>🧭 Mentor</button>
-          <div style={{ borderTop: `1px solid ${accent}20`, paddingTop: 14 }}>
-            {mentees.map(m => (
-              <button key={m.id} onClick={() => { setRole("mentorado"); setMenteeId(m.id); setView("home"); }} style={{ ...ghostBtn }}>
-                🌱 {m.name}
-              </button>
-            ))}
-          </div>
+  if (!role) return (
+    <div style={{ minHeight: "100vh", background: bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, fontFamily: "'Palatino Linotype',serif" }}>
+      <div style={{ textAlign: "center", marginBottom: 44, opacity: ready ? 1 : 0, transform: ready ? "translateY(0)" : "translateY(16px)", transition: "all 0.5s ease" }}>
+        {logoUrl ? <img src={logoUrl} alt="logo" style={{ width: 68, height: 68, borderRadius: 12, objectFit: "cover", marginBottom: 16 }} /> : <div style={{ fontSize: 44, marginBottom: 14 }}>🧠</div>}
+        <div style={{ fontSize: 10, letterSpacing: 5, textTransform: "uppercase", color: accent, marginBottom: 8 }}>{brandName}</div>
+        <h1 style={{ fontSize: 26, fontWeight: "normal", fontStyle: "italic", color: text, margin: "0 0 12px" }}>{brandSub}</h1>
+        <div style={{ width: 36, height: 1, background: accent, margin: "0 auto", opacity: 0.4 }} />
+      </div>
+      <div style={{ width: "100%", maxWidth: 300 }}>
+        <p style={{ textAlign: "center", fontSize: 11, letterSpacing: 3, textTransform: "uppercase", color: text, opacity: 0.4, marginBottom: 20 }}>Entrar como</p>
+        <button onClick={() => { setRole("mentor"); setMenteeId(mentees[0]?.id || null); setView("home"); }} style={{ ...primaryBtn, marginBottom: 14 }}>🧭 Mentor</button>
+        <div style={{ borderTop: `1px solid ${accent}20`, paddingTop: 14 }}>
+          {mentees.map(m => (
+            <button key={m.id} onClick={() => { setRole("mentorado"); setMenteeId(m.id); setView("home"); }} style={{ ...ghostBtn }}>🌱 {m.name}</button>
+          ))}
         </div>
       </div>
-    );
-  }
+    </div>
+  );
 
   const HomeView = () => {
     const metas = getMetas(); const tarefas = getTarefas();
@@ -208,8 +213,8 @@ export default function App() {
   };
 
   const MetasView = () => {
-    const [txt, setTxt] = useState("");
     const metas = getMetas();
+    const [taskDate, setTaskDate] = useState(todayStr());
     return (
       <div>
         <MenteePicker />
@@ -227,16 +232,14 @@ export default function App() {
         ))}
         <div style={{ borderTop: `1px solid ${accent}18`, paddingTop: 18, marginTop: 12 }}>
           <div style={secLabel}>Nova Meta</div>
-          <textarea value={txt} onChange={e => setTxt(e.target.value)} rows={3} placeholder="Descreva a meta..." style={{ ...inp, resize: "none" }} />
-          <button onClick={() => { addMeta(txt); setTxt(""); }} style={primaryBtn}>+ Adicionar Meta</button>
+          <LocalInput onCommit={addMeta} placeholder="Descreva a meta e pressione Enter..." style={inp} multiline rows={3} />
         </div>
       </div>
     );
   };
 
   const TarefasView = () => {
-    const [txt, setTxt] = useState("");
-    const [date, setDate] = useState(todayStr());
+    const [taskDate, setTaskDate] = useState(todayStr());
     const tarefas = getTarefas();
     const byDate = tarefas.reduce((a, t) => { (a[t.date] = a[t.date] || []).push(t); return a; }, {});
     const dates = Object.keys(byDate).sort().reverse();
@@ -259,9 +262,8 @@ export default function App() {
         ))}
         <div style={{ borderTop: `1px solid ${accent}18`, paddingTop: 18, marginTop: 8 }}>
           <div style={secLabel}>Nova Tarefa</div>
-          <input type="date" value={date} onChange={e => setDate(e.target.value)} style={inp} />
-          <input value={txt} onChange={e => setTxt(e.target.value)} placeholder="Descreva a tarefa..." style={inp} onKeyDown={e => e.key === "Enter" && (addTarefa(txt, date), setTxt(""))} />
-          <button onClick={() => { addTarefa(txt, date); setTxt(""); }} style={primaryBtn}>+ Adicionar Tarefa</button>
+          <input type="date" value={taskDate} onChange={e => setTaskDate(e.target.value)} style={inp} />
+          <LocalInput onCommit={(txt) => addTarefa(txt, taskDate)} placeholder="Descreva a tarefa e pressione Enter..." style={inp} />
         </div>
       </div>
     );
@@ -314,9 +316,7 @@ export default function App() {
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 12, color: text, opacity: 0.5, marginBottom: 8 }}>Logo</div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            {lc.logoUrl
-              ? <img src={lc.logoUrl} alt="logo" style={{ width: 52, height: 52, borderRadius: 10, objectFit: "cover", border: `1px solid ${accent}40` }} />
-              : <div style={{ width: 52, height: 52, borderRadius: 10, background: `${accent}18`, border: `1px solid ${accent}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>🧠</div>}
+            {lc.logoUrl ? <img src={lc.logoUrl} alt="logo" style={{ width: 52, height: 52, borderRadius: 10, objectFit: "cover" }} /> : <div style={{ width: 52, height: 52, borderRadius: 10, background: `${accent}18`, border: `1px solid ${accent}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>🧠</div>}
             <div>
               <input ref={lRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => {
                 const file = e.target.files[0]; if (!file) return;
@@ -328,15 +328,15 @@ export default function App() {
           </div>
         </div>
         <div style={{ fontSize: 12, color: text, opacity: 0.5, marginBottom: 5 }}>Nome principal</div>
-        <input value={lc.brandName} onChange={e => setLc(p => ({ ...p, brandName: e.target.value }))} style={inp} />
+        <RenameInput initial={lc.brandName} onSave={v => setLc(p => ({ ...p, brandName: v }))} style={inp} />
         <div style={{ fontSize: 12, color: text, opacity: 0.5, marginBottom: 5 }}>Subtítulo</div>
-        <input value={lc.brandSub} onChange={e => setLc(p => ({ ...p, brandSub: e.target.value }))} style={inp} />
+        <RenameInput initial={lc.brandSub} onSave={v => setLc(p => ({ ...p, brandSub: v }))} style={inp} />
         <div style={{ fontSize: 12, color: text, opacity: 0.5, marginBottom: 10, marginTop: 4 }}>Temas prontos</div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
           {THEMES.map(t => (
             <div key={t.label} onClick={() => setLc(p => ({ ...p, accentColor: t.accent, bgColor: t.bg }))}
               style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, cursor: "pointer" }}>
-              <div style={{ width: 30, height: 30, borderRadius: "50%", background: t.accent, border: lc.accentColor === t.accent ? `3px solid ${text}` : "3px solid transparent", transition: "border 0.15s" }} />
+              <div style={{ width: 30, height: 30, borderRadius: "50%", background: t.accent, border: lc.accentColor === t.accent ? `3px solid ${text}` : "3px solid transparent" }} />
               <span style={{ fontSize: 9, color: text, opacity: 0.45 }}>{t.label}</span>
             </div>
           ))}
@@ -345,16 +345,14 @@ export default function App() {
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 11, color: text, opacity: 0.45, marginBottom: 6 }}>Cor destaque</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <input type="color" value={lc.accentColor} onChange={e => setLc(p => ({ ...p, accentColor: e.target.value }))}
-                style={{ width: 38, height: 38, border: "none", borderRadius: 6, cursor: "pointer", padding: 0 }} />
+              <input type="color" value={lc.accentColor} onChange={e => setLc(p => ({ ...p, accentColor: e.target.value }))} style={{ width: 38, height: 38, border: "none", borderRadius: 6, cursor: "pointer", padding: 0 }} />
               <span style={{ fontSize: 11, color: text, opacity: 0.45 }}>{lc.accentColor}</span>
             </div>
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 11, color: text, opacity: 0.45, marginBottom: 6 }}>Cor de fundo</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <input type="color" value={lc.bgColor} onChange={e => setLc(p => ({ ...p, bgColor: e.target.value }))}
-                style={{ width: 38, height: 38, border: "none", borderRadius: 6, cursor: "pointer", padding: 0 }} />
+              <input type="color" value={lc.bgColor} onChange={e => setLc(p => ({ ...p, bgColor: e.target.value }))} style={{ width: 38, height: 38, border: "none", borderRadius: 6, cursor: "pointer", padding: 0 }} />
               <span style={{ fontSize: 11, color: text, opacity: 0.45 }}>{lc.bgColor}</span>
             </div>
           </div>
@@ -364,8 +362,7 @@ export default function App() {
           <div style={secLabel}>Mentorados</div>
           {mentees.map(m => (
             <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <input value={m.name} onChange={e => renameMentee(m.id, e.target.value)}
-                style={{ ...inp, marginBottom: 0, flex: 1 }} placeholder="Nome do mentorado" />
+              <RenameInput initial={m.name} onSave={name => renameMentee(m.id, name)} style={{ ...inp, marginBottom: 0, flex: 1 }} />
               <button onClick={() => delMentee(m.id)} style={{ background: "none", border: "none", color: accent, opacity: 0.4, cursor: "pointer", fontSize: 22, padding: "0 4px", flexShrink: 0 }}>×</button>
             </div>
           ))}
@@ -373,10 +370,7 @@ export default function App() {
         </div>
         <div style={{ borderTop: `1px solid ${accent}18`, paddingTop: 16, marginTop: 8 }}>
           <div style={secLabel}>Dados</div>
-          <button onClick={() => { if (window.confirm("Apagar TODOS os dados? Isso não pode ser desfeito.")) { setTaskData({}); } }}
-            style={{ ...ghostBtn, color: "#f4836b", borderColor: "#f4836b40" }}>
-            🗑 Apagar todos os dados
-          </button>
+          <button onClick={() => { if (window.confirm("Apagar TODOS os dados?")) { setTaskData({}); } }} style={{ ...ghostBtn, color: "#f4836b", borderColor: "#f4836b40" }}>🗑 Apagar todos os dados</button>
         </div>
       </div>
     );
@@ -387,9 +381,7 @@ export default function App() {
   return (
     <div style={{ minHeight: "100vh", background: bg, color: text, fontFamily: "'Palatino Linotype','Book Antiqua',Palatino,serif", display: "flex", flexDirection: "column", maxWidth: 500, margin: "0 auto" }}>
       <div style={{ padding: "20px 20px 14px", borderBottom: `1px solid ${accent}22`, display: "flex", alignItems: "center", gap: 12 }}>
-        {logoUrl
-          ? <img src={logoUrl} alt="logo" style={{ width: 40, height: 40, borderRadius: 8, objectFit: "cover", border: `1px solid ${accent}38`, flexShrink: 0 }} />
-          : <div style={{ width: 40, height: 40, borderRadius: 8, background: `${accent}18`, border: `1px solid ${accent}28`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>🧠</div>}
+        {logoUrl ? <img src={logoUrl} alt="logo" style={{ width: 40, height: 40, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} /> : <div style={{ width: 40, height: 40, borderRadius: 8, background: `${accent}18`, border: `1px solid ${accent}28`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>🧠</div>}
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 9, letterSpacing: 4, textTransform: "uppercase", color: accent, opacity: 0.75 }}>{brandName}</div>
           <h1 style={{ fontSize: 18, fontWeight: "normal", fontStyle: "italic", margin: 0, lineHeight: 1.2 }}>{titles[view]}</h1>
