@@ -39,8 +39,8 @@ const THEMES = [
 
 // font scale — passed as prop to components that need it
 const makeFS = (isDesktop) => isDesktop
-  ? { xs: 12, sm: 14, base: 16, md: 18, lg: 22, xl: 30, label: 11, title: 28 }
-  : { xs: 11, sm: 13, base: 15, md: 16, lg: 20, xl: 26, label: 10, title: 22 };
+  ? { xs: 14, sm: 16, base: 18, md: 22, lg: 26, xl: 36, label: 13, title: 34 }
+  : { xs: 13, sm: 15, base: 17, md: 20, lg: 24, xl: 32, label: 12, title: 28 };
 
 function LocalInput({ onCommit, placeholder, style, multiline, rows }) {
   const [val, setVal] = useState("");
