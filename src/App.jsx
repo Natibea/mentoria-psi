@@ -64,10 +64,22 @@ export default function App() {
     loadAll();
   }, []);
 
-  // Save to Supabase on change
-  useEffect(() => { if (!loading) sbSave("config", config); }, [config]);
-  useEffect(() => { if (!loading) sbSave("mentees", mentees); }, [mentees]);
-  useEffect(() => { if (!loading) sbSave("tasks", taskData); }, [taskData]);
+  // Save to Supabase with debounce (1.5s after last change)
+  useEffect(() => {
+    if (loading) return;
+    const t = setTimeout(() => sbSave("config", config), 1500);
+    return () => clearTimeout(t);
+  }, [config]);
+  useEffect(() => {
+    if (loading) return;
+    const t = setTimeout(() => sbSave("mentees", mentees), 1500);
+    return () => clearTimeout(t);
+  }, [mentees]);
+  useEffect(() => {
+    if (loading) return;
+    const t = setTimeout(() => sbSave("tasks", taskData), 1500);
+    return () => clearTimeout(t);
+  }, [taskData]);
 
   const { accentColor: accent, bgColor: bg, brandName, brandSub, logoUrl } = config;
   const text = "#f0ece0";
