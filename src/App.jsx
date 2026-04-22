@@ -468,26 +468,86 @@ export default function App() {
     );
   };
 
-  const titles = { home: "Painel", metas: "Metas", tarefas: "Tarefas", historico: "Histórico", config: "Configurações" };
 
+  const titles = { home: "Painel", metas: "Metas", tarefas: "Tarefas", historico: "Histórico", config: "Configurações" };
+  const isDesktop = window.innerWidth >= 768;
+  const handleLogout = () => {
+    if (role === "mentorado") { window.location.reload(); }
+    else { setRole(null); setMenteeId(null); window.history.pushState({}, "", "/"); }
+  };
+
+  // DESKTOP: sidebar nav on left, content on right
+  if (isDesktop) return (
+    <div style={{ display: "flex", height: "100vh", background: bg, color: text, fontFamily: "'Palatino Linotype','Book Antiqua',Palatino,serif", overflow: "hidden" }}>
+      {/* Sidebar */}
+      <div style={{ width: 220, background: `${accent}08`, borderRight: `1px solid ${accent}18`, display: "flex", flexDirection: "column", padding: "28px 0 20px", flexShrink: 0 }}>
+        <div style={{ padding: "0 20px 28px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+            {logoUrl ? <img src={logoUrl} alt="logo" style={{ width: 36, height: 36, borderRadius: 8, objectFit: "cover" }} /> : <div style={{ width: 36, height: 36, borderRadius: 8, background: `${accent}18`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🧠</div>}
+            <div>
+              <div style={{ fontSize: 9, letterSpacing: 3, textTransform: "uppercase", color: accent, opacity: 0.7 }}>{brandName}</div>
+              <div style={{ fontSize: 13, fontStyle: "italic", opacity: 0.8 }}>{brandSub}</div>
+            </div>
+          </div>
+          {role === "mentor" && (
+            <div>
+              <div style={{ fontSize: 9, letterSpacing: 3, textTransform: "uppercase", color: accent, opacity: 0.5, marginBottom: 6 }}>Mentorado</div>
+              {mentees.map(m => (
+                <button key={m.id} onClick={() => setMenteeId(m.id)} style={{
+                  display: "block", width: "100%", textAlign: "left", background: menteeId === m.id ? `${accent}20` : "transparent",
+                  color: menteeId === m.id ? accent : text, border: "none", borderRadius: 6, padding: "5px 8px",
+                  fontSize: 13, cursor: "pointer", fontFamily: "'Palatino Linotype',serif", marginBottom: 2, opacity: menteeId === m.id ? 1 : 0.6,
+                }}>{m.name}</button>
+              ))}
+            </div>
+          )}
+        </div>
+        <div style={{ flex: 1, padding: "0 12px" }}>
+          {navItems.map(n => (
+            <button key={n.id} onClick={() => setView(n.id)} style={{
+              display: "block", width: "100%", textAlign: "left",
+              background: view === n.id ? accent : "transparent",
+              color: view === n.id ? bg : text, border: "none", borderRadius: 8,
+              padding: "10px 14px", fontSize: 13, cursor: "pointer",
+              fontFamily: "'Palatino Linotype',serif", marginBottom: 4,
+              fontWeight: view === n.id ? "bold" : "normal", opacity: view === n.id ? 1 : 0.65,
+              letterSpacing: 0.3,
+            }}>{n.label}</button>
+          ))}
+        </div>
+        <div style={{ padding: "0 12px" }}>
+          <button onClick={handleLogout} style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: `1px solid ${accent}28`, color: accent, borderRadius: 8, padding: "8px 14px", fontSize: 12, cursor: "pointer", opacity: 0.6 }}>Sair</button>
+        </div>
+      </div>
+      {/* Main content */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ padding: "24px 36px 16px", borderBottom: `1px solid ${accent}18` }}>
+          <h1 style={{ fontSize: 24, fontWeight: "normal", fontStyle: "italic", margin: 0, color: text }}>{titles[view]}</h1>
+        </div>
+        <div style={{ flex: 1, overflowY: "auto", padding: "24px 36px" }}>
+          {view === "home" && <HomeView />}
+          {view === "metas" && <MetasView />}
+          {view === "tarefas" && <TarefasView />}
+          {view === "historico" && <HistoricoView />}
+          {view === "config" && <ConfigView />}
+          <div style={{ height: 24 }} />
+        </div>
+      </div>
+    </div>
+  );
+
+  // MOBILE: bottom nav
   return (
-    <div style={{ minHeight: "100vh", background: bg, color: text, fontFamily: "'Palatino Linotype','Book Antiqua',Palatino,serif", display: "flex", flexDirection: "column", maxWidth: 500, margin: "0 auto" }}>
-      <div style={{ padding: "20px 20px 14px", borderBottom: `1px solid ${accent}22`, display: "flex", alignItems: "center", gap: 12 }}>
-        {logoUrl ? <img src={logoUrl} alt="logo" style={{ width: 40, height: 40, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} /> : <div style={{ width: 40, height: 40, borderRadius: 8, background: `${accent}18`, border: `1px solid ${accent}28`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>🧠</div>}
+    <div style={{ height: "100vh", background: bg, color: text, fontFamily: "'Palatino Linotype','Book Antiqua',Palatino,serif", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ padding: "16px 18px 12px", borderBottom: `1px solid ${accent}22`, display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+        {logoUrl ? <img src={logoUrl} alt="logo" style={{ width: 36, height: 36, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} /> : <div style={{ width: 36, height: 36, borderRadius: 8, background: `${accent}18`, border: `1px solid ${accent}28`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>🧠</div>}
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 9, letterSpacing: 4, textTransform: "uppercase", color: accent, opacity: 0.75 }}>{brandName}</div>
-          <h1 style={{ fontSize: 18, fontWeight: "normal", fontStyle: "italic", margin: 0, lineHeight: 1.2 }}>{titles[view]}</h1>
+          <h1 style={{ fontSize: 16, fontWeight: "normal", fontStyle: "italic", margin: 0, lineHeight: 1.2 }}>{titles[view]}</h1>
         </div>
-        <button onClick={() => {
-          if (role === "mentorado") {
-            // Mentorada volta para a própria tela de login (reload do link dela)
-            window.location.reload();
-          } else {
-            setRole(null); setMenteeId(null); window.history.pushState({}, "", "/");
-          }
-        }} style={{ background: "none", border: `1px solid ${accent}28`, color: accent, borderRadius: 6, padding: "5px 11px", fontSize: 11, cursor: "pointer", opacity: 0.7 }}>Sair</button>
+        <button onClick={handleLogout} style={{ background: "none", border: `1px solid ${accent}28`, color: accent, borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer", opacity: 0.7 }}>Sair</button>
       </div>
-      <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 12px" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "16px 18px 8px" }}>
         {view === "home" && <HomeView />}
         {view === "metas" && <MetasView />}
         {view === "tarefas" && <TarefasView />}
@@ -495,7 +555,7 @@ export default function App() {
         {view === "config" && <ConfigView />}
         <div style={{ height: 12 }} />
       </div>
-      <div style={{ display: "flex", gap: 5, padding: "10px 14px 20px", borderTop: `1px solid ${accent}18` }}>
+      <div style={{ display: "flex", gap: 4, padding: "8px 12px 16px", borderTop: `1px solid ${accent}18`, flexShrink: 0 }}>
         {navItems.map(n => (
           <button key={n.id} onClick={() => setView(n.id)} style={{
             flex: 1, background: view === n.id ? accent : `${accent}10`,
