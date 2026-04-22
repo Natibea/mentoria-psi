@@ -45,7 +45,7 @@ function EditableText({ value, onSave, style, multiline }) {
   return (
     <span style={{ display: "flex", alignItems: "flex-start", gap: 6, flex: 1 }}>
       <span style={{ flex: 1 }}>{value}</span>
-      <button onClick={() => setEditing(true)} style={{ background: "none", border: "none", cursor: "pointer", opacity: 0.35, fontSize: 13, padding: "0 2px", flexShrink: 0, lineHeight: 1 }}>✏️</button>
+      <button onClick={() => setEditing(true)} style={{ background: "none", border: "none", cursor: "pointer", opacity: 0.35, fontSize: fs.sm, padding: "0 2px", flexShrink: 0, lineHeight: 1 }}>✏️</button>
     </span>
   );
 }
@@ -67,7 +67,7 @@ function RenameInput({ initial, onSave, style }) {
 const TarefaCard = memo(({ t, expanded, onToggleExpand, accent, bg, text, today, onToggle, onDelete, onEdit, onEditTitulo, onAddAcao, onToggleAcao, onDelAcao, onEditAcao }) => {
   const acoes = t.acoes || [];
   const acoesFeitas = acoes.filter(a => a.done).length;
-  const inpStyle = { width: "100%", background: `${accent}0e`, border: `1px solid ${accent}28`, borderRadius: 8, padding: "8px 12px", color: text, fontSize: 13, fontFamily: "'Palatino Linotype',serif", outline: "none", boxSizing: "border-box" };
+  const inpStyle = { width: "100%", background: `${accent}0e`, border: `1px solid ${accent}28`, borderRadius: 8, padding: "8px 12px", color: text, fontSize: fs.sm, fontFamily: "'Palatino Linotype',serif", outline: "none", boxSizing: "border-box" };
   const mkCircle = (done, sq) => ({ width: sq ? 16 : 20, height: sq ? 16 : 20, minWidth: sq ? 16 : 20, borderRadius: sq ? 4 : "50%", border: `2px solid ${accent}`, background: done ? accent : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer" });
 
   return (
@@ -78,29 +78,29 @@ const TarefaCard = memo(({ t, expanded, onToggleExpand, accent, bg, text, today,
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-            <div style={{ flex: 1, fontSize: 14, fontWeight: "bold", lineHeight: 1.4, textDecoration: t.done ? "line-through" : "none", opacity: t.done ? 0.4 : 1 }}>
-              <EditableText value={t.titulo} onSave={(v) => onEditTitulo(t.id, v)} style={{ background: `${accent}0e`, border: `1px solid ${accent}28`, borderRadius: 6, padding: "4px 8px", color: text, fontSize: 14, fontFamily: "'Palatino Linotype',serif", outline: "none" }} />
+            <div style={{ flex: 1, fontSize: fs.base, fontWeight: "bold", lineHeight: 1.4, textDecoration: t.done ? "line-through" : "none", opacity: t.done ? 0.4 : 1 }}>
+              <EditableText value={t.titulo} onSave={(v) => onEditTitulo(t.id, v)} style={{ background: `${accent}0e`, border: `1px solid ${accent}28`, borderRadius: 6, padding: "4px 8px", color: text, fontSize: fs.base, fontFamily: "'Palatino Linotype',serif", outline: "none" }} />
             </div>
             <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
-              {acoes.length > 0 && <span style={{ fontSize: 11, color: accent, opacity: 0.65 }}>{acoesFeitas}/{acoes.length}</span>}
-              <button onClick={() => onToggleExpand(t.id)} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontSize: 14, opacity: 0.6, padding: "0 2px" }}>{expanded ? "▲" : "▼"}</button>
+              {acoes.length > 0 && <span style={{ fontSize: fs.xs, color: accent, opacity: 0.65 }}>{acoesFeitas}/{acoes.length}</span>}
+              <button onClick={() => onToggleExpand(t.id)} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontSize: fs.base, opacity: 0.6, padding: "0 2px" }}>{expanded ? "▲" : "▼"}</button>
               <button onClick={() => onDelete(t.id)} style={{ background: "none", border: "none", color: accent, opacity: 0.3, cursor: "pointer", fontSize: 20, padding: "0 2px", lineHeight: 1 }}>×</button>
             </div>
           </div>
-          <div style={{ fontSize: 11, color: accent, opacity: 0.5, marginTop: 2 }}>{t.date === today ? "📅 Hoje" : t.date}</div>
+          <div style={{ fontSize: fs.xs, color: accent, opacity: 0.5, marginTop: 2 }}>{t.date === today ? "📅 Hoje" : t.date}</div>
         </div>
       </div>
       {expanded && (
         <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${accent}18` }}>
-          <div style={{ fontSize: 10, letterSpacing: 3, textTransform: "uppercase", color: accent, opacity: 0.6, marginBottom: 8 }}>Ações</div>
-          {acoes.length === 0 && <div style={{ fontSize: 12, opacity: 0.3, fontStyle: "italic", marginBottom: 8 }}>Nenhuma ação ainda</div>}
+          <div style={{ fontSize: fs.label, letterSpacing: 3, textTransform: "uppercase", color: accent, opacity: 0.6, marginBottom: 8 }}>Ações</div>
+          {acoes.length === 0 && <div style={{ fontSize: fs.xs, opacity: 0.3, fontStyle: "italic", marginBottom: 8 }}>Nenhuma ação ainda</div>}
           {acoes.map(a => (
             <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 8 }}>
               <div style={mkCircle(a.done, true)} onClick={() => onToggleAcao(t.id, a.id)}>
                 {a.done && <span style={{ color: bg, fontSize: 9 }}>✓</span>}
               </div>
-              <span style={{ flex: 1, fontSize: 13, textDecoration: a.done ? "line-through" : "none", opacity: a.done ? 0.4 : 0.9, color: text }}>
-                <EditableText value={a.text} onSave={(v) => onEditAcao(t.id, a.id, v)} style={{ background: `${accent}0e`, border: `1px solid ${accent}28`, borderRadius: 6, padding: "3px 8px", color: text, fontSize: 13, fontFamily: "'Palatino Linotype',serif", outline: "none" }} />
+              <span style={{ flex: 1, fontSize: fs.sm, textDecoration: a.done ? "line-through" : "none", opacity: a.done ? 0.4 : 0.9, color: text }}>
+                <EditableText value={a.text} onSave={(v) => onEditAcao(t.id, a.id, v)} style={{ background: `${accent}0e`, border: `1px solid ${accent}28`, borderRadius: 6, padding: "3px 8px", color: text, fontSize: fs.sm, fontFamily: "'Palatino Linotype',serif", outline: "none" }} />
               </span>
               <button onClick={() => onDelAcao(t.id, a.id)} style={{ background: "none", border: "none", color: accent, opacity: 0.3, cursor: "pointer", fontSize: 17, lineHeight: 1 }}>×</button>
             </div>
@@ -194,13 +194,13 @@ export default function App() {
   const renameMentee = (id, name) => setMentees(p => p.map(m => m.id === id ? { ...m, name, slug: toSlug(name) } : m));
   const delMentee = (id) => { setMentees(p => p.filter(m => m.id !== id)); if (menteeId === id) setMenteeId(null); };
 
-  const inp = { width: "100%", background: `${accent}0e`, border: `1px solid ${accent}28`, borderRadius: 8, padding: "11px 13px", color: text, fontSize: 14, fontFamily: "'Palatino Linotype',serif", outline: "none", boxSizing: "border-box", marginBottom: 8 };
-  const primaryBtn = { background: accent, color: bg, border: "none", borderRadius: 8, padding: "11px 18px", fontSize: 13, fontWeight: "bold", cursor: "pointer", width: "100%", fontFamily: "'Palatino Linotype',serif", marginBottom: 8, letterSpacing: 0.6 };
-  const ghostBtn = { background: "transparent", color: accent, border: `1px solid ${accent}38`, borderRadius: 8, padding: "11px 18px", fontSize: 13, cursor: "pointer", width: "100%", fontFamily: "'Palatino Linotype',serif", marginBottom: 8 };
-  const secLabel = { fontSize: 10, letterSpacing: 4, textTransform: "uppercase", color: accent, opacity: 0.75, marginBottom: 12 };
-  const mkCircle = (done) => ({ width: 20, height: 20, minWidth: 20, borderRadius: "50%", border: `2px solid ${accent}`, background: done ? accent : "transparent", display: "flex", alignItems: "center", justifyContent: "center", marginTop: 2, flexShrink: 0 });
-  const empty = { textAlign: "center", opacity: 0.3, fontSize: 13, fontStyle: "italic", padding: "28px 0" };
-  const flatCard = { background: `${accent}0d`, border: `1px solid ${accent}22`, borderRadius: 11, padding: "13px 14px", marginBottom: 10, display: "flex", alignItems: "flex-start", gap: 11 };
+  const inp = { width: "100%", background: `${accent}0e`, border: `1px solid ${accent}28`, borderRadius: 8, padding: isDesktop ? "13px 16px" : "11px 13px", color: text, fontSize: fs.base, fontFamily: "'Palatino Linotype',serif", outline: "none", boxSizing: "border-box", marginBottom: 8 };
+  const primaryBtn = { background: accent, color: bg, border: "none", borderRadius: 8, padding: isDesktop ? "13px 20px" : "11px 18px", fontSize: fs.sm, fontWeight: "bold", cursor: "pointer", width: "100%", fontFamily: "'Palatino Linotype',serif", marginBottom: 8, letterSpacing: 0.6 };
+  const ghostBtn = { background: "transparent", color: accent, border: `1px solid ${accent}38`, borderRadius: 8, padding: isDesktop ? "13px 20px" : "11px 18px", fontSize: fs.sm, cursor: "pointer", width: "100%", fontFamily: "'Palatino Linotype',serif", marginBottom: 8 };
+  const secLabel = { fontSize: fs.label, letterSpacing: 4, textTransform: "uppercase", color: accent, opacity: 0.75, marginBottom: 12 };
+  const mkCircle = (done) => ({ width: isDesktop ? 24 : 20, height: isDesktop ? 24 : 20, minWidth: isDesktop ? 24 : 20, borderRadius: "50%", border: `2px solid ${accent}`, background: done ? accent : "transparent", display: "flex", alignItems: "center", justifyContent: "center", marginTop: 2, flexShrink: 0 });
+  const empty = { textAlign: "center", opacity: 0.3, fontSize: fs.sm, fontStyle: "italic", padding: "28px 0" };
+  const flatCard = { background: `${accent}0d`, border: `1px solid ${accent}22`, borderRadius: 11, padding: isDesktop ? "16px 18px" : "13px 14px", marginBottom: 10, display: "flex", alignItems: "flex-start", gap: isDesktop ? 14 : 11 };
 
   const cardProps = { accent, bg, text, today, onToggle: toggleTarefa, onDelete: delTarefa, onEditTitulo: editTitulo, onAddAcao: addAcao, onToggleAcao: toggleAcao, onDelAcao: delAcao, onEditAcao: editAcao, onToggleExpand: toggleExpand };
 
@@ -221,7 +221,7 @@ export default function App() {
         {mentees.map(m => (
           <button key={m.id} onClick={() => setMenteeId(m.id)} style={{
             background: menteeId === m.id ? accent : `${accent}12`, color: menteeId === m.id ? bg : text,
-            border: "none", borderRadius: 20, padding: "7px 15px", fontSize: 13, cursor: "pointer",
+            border: "none", borderRadius: 20, padding: "7px 15px", fontSize: fs.sm, cursor: "pointer",
             fontFamily: "'Palatino Linotype',serif", transition: "all 0.15s",
           }}>{m.name}</button>
         ))}
@@ -232,8 +232,8 @@ export default function App() {
   if (loading) return (
     <div style={{ minHeight: "100vh", background: "#12121f", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Palatino Linotype',serif", color: "#f0ece0" }}>
       <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 36, marginBottom: 16 }}>🧠</div>
-        <div style={{ fontSize: 12, letterSpacing: 3, textTransform: "uppercase", color: "#e2b96f", opacity: 0.7 }}>Carregando...</div>
+        <div style={{ fontSize: isDesktop ? 44 : 36, marginBottom: 16 }}>🧠</div>
+        <div style={{ fontSize: fs.xs, letterSpacing: 3, textTransform: "uppercase", color: "#e2b96f", opacity: 0.7, fontSize: 14 }}>Carregando...</div>
       </div>
     </div>
   );
@@ -241,13 +241,13 @@ export default function App() {
   if (!role) return (
     <div style={{ minHeight: "100vh", background: bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, fontFamily: "'Palatino Linotype',serif" }}>
       <div style={{ textAlign: "center", marginBottom: 44, opacity: ready ? 1 : 0, transform: ready ? "translateY(0)" : "translateY(16px)", transition: "all 0.5s ease" }}>
-        {logoUrl ? <img src={logoUrl} alt="logo" style={{ width: 68, height: 68, borderRadius: 12, objectFit: "cover", marginBottom: 16 }} /> : <div style={{ fontSize: 44, marginBottom: 14 }}>🧠</div>}
-        <div style={{ fontSize: 10, letterSpacing: 5, textTransform: "uppercase", color: accent, marginBottom: 8 }}>{brandName}</div>
-        <h1 style={{ fontSize: 26, fontWeight: "normal", fontStyle: "italic", color: text, margin: "0 0 12px" }}>{brandSub}</h1>
+        {logoUrl ? <img src={logoUrl} alt="logo" style={{ width: 68, height: 68, borderRadius: 12, objectFit: "cover", marginBottom: 16 }} /> : <div style={{ fontSize: isDesktop ? 52 : 44, marginBottom: 14 }}>🧠</div>}
+        <div style={{ fontSize: fs.label, letterSpacing: 5, textTransform: "uppercase", color: accent, marginBottom: 8 }}>{brandName}</div>
+        <h1 style={{ fontSize: fs.title, fontWeight: "normal", fontStyle: "italic", color: text, margin: "0 0 12px" }}>{brandSub}</h1>
         <div style={{ width: 36, height: 1, background: accent, margin: "0 auto", opacity: 0.4 }} />
       </div>
       <div style={{ width: "100%", maxWidth: 300 }}>
-        <p style={{ textAlign: "center", fontSize: 11, letterSpacing: 3, textTransform: "uppercase", color: text, opacity: 0.4, marginBottom: 20 }}>Entrar como</p>
+        <p style={{ textAlign: "center", fontSize: fs.xs, letterSpacing: 3, textTransform: "uppercase", color: text, opacity: 0.4, marginBottom: 20 }}>Entrar como</p>
         <button onClick={() => { setRole("mentor"); setMenteeId(mentees[0]?.id || null); setView("home"); }} style={{ ...primaryBtn, marginBottom: 14 }}>🧭 Mentor</button>
         <div style={{ borderTop: `1px solid ${accent}20`, paddingTop: 14 }}>
           {mentees.map(m => (
@@ -272,7 +272,7 @@ export default function App() {
           <div style={{ height: 5, background: `${accent}18`, borderRadius: 3, marginBottom: 6, overflow: "hidden" }}>
             <div style={{ height: "100%", width: `${pct}%`, background: accent, borderRadius: 3, transition: "width 0.6s" }} />
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, opacity: 0.5 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: fs.xs, opacity: 0.5 }}>
             <span>{done} de {metas.length} concluídas</span>
             <span style={{ color: accent }}>{pct}%</span>
           </div>
@@ -280,9 +280,7 @@ export default function App() {
         <div style={{ display: "flex", gap: 10, marginBottom: 22 }}>
           {[{ l: "Metas", t: metas.length, d: done }, { l: "Hoje", t: hoje.length, d: hojeDone }].map(s => (
             <div key={s.l} style={{ flex: 1, background: `${accent}0e`, borderRadius: 11, padding: "13px 14px", border: `1px solid ${accent}1a` }}>
-              <div style={{ fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: text, opacity: 0.45 }}>{s.l}</div>
-              <div style={{ fontSize: 28, color: accent, margin: "4px 0 2px" }}>{s.d}</div>
-              <div style={{ fontSize: 11, color: text, opacity: 0.4 }}>de {s.t}</div>
+
             </div>
           ))}
         </div>
@@ -305,10 +303,10 @@ export default function App() {
           <div key={m.id} style={flatCard}>
             <div style={{ ...mkCircle(m.done), cursor: "pointer" }} onClick={() => toggleMeta(m.id)}>{m.done && <span style={{ color: bg, fontSize: 10 }}>✓</span>}</div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, lineHeight: 1.5, textDecoration: m.done ? "line-through" : "none", opacity: m.done ? 0.4 : 1 }}>
-                <EditableText value={m.text} onSave={(v) => editMeta(m.id, v)} style={{ background: `${accent}0e`, border: `1px solid ${accent}28`, borderRadius: 6, padding: "4px 8px", color: text, fontSize: 14, fontFamily: "'Palatino Linotype',serif", outline: "none" }} multiline />
+              <div style={{ fontSize: fs.base, lineHeight: 1.5, textDecoration: m.done ? "line-through" : "none", opacity: m.done ? 0.4 : 1 }}>
+                <EditableText value={m.text} onSave={(v) => editMeta(m.id, v)} style={{ background: `${accent}0e`, border: `1px solid ${accent}28`, borderRadius: 6, padding: "4px 8px", color: text, fontSize: fs.base, fontFamily: "'Palatino Linotype',serif", outline: "none" }} multiline />
               </div>
-              <div style={{ fontSize: 11, color: accent, opacity: 0.55, marginTop: 3 }}>{m.done ? `✓ ${m.doneAt}` : `Criada ${m.createdAt}`}</div>
+              <div style={{ fontSize: fs.xs, color: accent, opacity: 0.55, marginTop: 3 }}>{m.done ? `✓ ${m.doneAt}` : `Criada ${m.createdAt}`}</div>
             </div>
             <button style={{ background: "none", border: "none", color: accent, opacity: 0.35, cursor: "pointer", fontSize: 20, padding: "0 2px", flexShrink: 0 }} onClick={() => delMeta(m.id)}>×</button>
           </div>
@@ -333,7 +331,7 @@ export default function App() {
         {dates.length === 0 && <div style={empty}>Nenhuma tarefa cadastrada</div>}
         {dates.map(d => (
           <div key={d} style={{ marginBottom: 18 }}>
-            <div style={{ fontSize: 11, color: accent, letterSpacing: 2, marginBottom: 7, opacity: 0.6 }}>{d === today ? "📅 Hoje" : d}</div>
+            <div style={{ fontSize: fs.xs, color: accent, letterSpacing: 2, marginBottom: 7, opacity: 0.6 }}>{d === today ? "📅 Hoje" : d}</div>
             {byDate[d].map(t => <TarefaCard key={t.id} t={t} expanded={!!expandedCards[t.id]} {...cardProps} />)}
           </div>
         ))}
@@ -341,7 +339,7 @@ export default function App() {
           <div style={secLabel}>Nova Tarefa</div>
           <input type="date" value={taskDate} onChange={e => setTaskDate(e.target.value)} style={inp} />
           <LocalInput onCommit={(txt) => addTarefa(txt, taskDate)} placeholder="Título da tarefa... (Enter para salvar)" style={inp} />
-          <div style={{ fontSize: 11, opacity: 0.4, fontStyle: "italic", marginTop: -4 }}>Abra com ▼ para adicionar ações.</div>
+          <div style={{ fontSize: fs.xs, opacity: 0.4, fontStyle: "italic", marginTop: -4 }}>Abra com ▼ para adicionar ações.</div>
         </div>
       </div>
     );
@@ -356,9 +354,9 @@ export default function App() {
         <div style={{ display: "flex", gap: 10, marginBottom: 22 }}>
           {[{ l: "Metas", total: metas.length, done: md.length }, { l: "Tarefas", total: tarefas.length, done: td.length }].map(s => (
             <div key={s.l} style={{ flex: 1, background: `${accent}0e`, borderRadius: 11, padding: "13px 14px", border: `1px solid ${accent}1a` }}>
-              <div style={{ fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: text, opacity: 0.45 }}>{s.l}</div>
-              <div style={{ fontSize: 28, color: accent, margin: "4px 0 2px" }}>{s.done}</div>
-              <div style={{ fontSize: 11, color: text, opacity: 0.4 }}>de {s.total}</div>
+              <div style={{ fontSize: fs.label, letterSpacing: 2, textTransform: "uppercase", color: text, opacity: 0.45 }}>{s.l}</div>
+              <div style={{ fontSize: fs.xl, color: accent, margin: "4px 0 2px" }}>{s.done}</div>
+              <div style={{ fontSize: fs.xs, color: text, opacity: 0.4 }}>de {s.total}</div>
             </div>
           ))}
         </div>
@@ -367,8 +365,8 @@ export default function App() {
           <div key={m.id} style={{ ...flatCard, opacity: 0.65 }}>
             <div style={mkCircle(true)}><span style={{ color: bg, fontSize: 10 }}>✓</span></div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, textDecoration: "line-through", opacity: 0.5 }}>{m.text}</div>
-              <div style={{ fontSize: 11, color: accent, opacity: 0.5, marginTop: 3 }}>Concluída em {m.doneAt}</div>
+              <div style={{ fontSize: fs.base, textDecoration: "line-through", opacity: 0.5 }}>{m.text}</div>
+              <div style={{ fontSize: fs.xs, color: accent, opacity: 0.5, marginTop: 3 }}>Concluída em {m.doneAt}</div>
             </div>
           </div>
         ))}</>}
@@ -376,8 +374,8 @@ export default function App() {
           <div key={t.id} style={{ ...flatCard, opacity: 0.65 }}>
             <div style={mkCircle(true)}><span style={{ color: bg, fontSize: 10 }}>✓</span></div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, textDecoration: "line-through", opacity: 0.5 }}>{t.titulo}</div>
-              <div style={{ fontSize: 11, color: accent, opacity: 0.5, marginTop: 3 }}>{t.date}</div>
+              <div style={{ fontSize: fs.base, textDecoration: "line-through", opacity: 0.5 }}>{t.titulo}</div>
+              <div style={{ fontSize: fs.xs, color: accent, opacity: 0.5, marginTop: 3 }}>{t.date}</div>
             </div>
           </div>
         ))}</>}
@@ -392,7 +390,7 @@ export default function App() {
       <div>
         <div style={secLabel}>Identidade Visual</div>
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 12, color: text, opacity: 0.5, marginBottom: 8 }}>Logo</div>
+          <div style={{ fontSize: fs.xs, color: text, opacity: 0.5, marginBottom: 8 }}>Logo</div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             {lc.logoUrl ? <img src={lc.logoUrl} alt="logo" style={{ width: 52, height: 52, borderRadius: 10, objectFit: "cover" }} /> : <div style={{ width: 52, height: 52, borderRadius: 10, background: `${accent}18`, border: `1px solid ${accent}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>🧠</div>}
             <div>
@@ -401,37 +399,37 @@ export default function App() {
                 const r = new FileReader(); r.onload = ev => setLc(p => ({ ...p, logoUrl: ev.target.result })); r.readAsDataURL(file);
               }} />
               <button onClick={() => lRef.current.click()} style={{ ...ghostBtn, width: "auto", padding: "7px 14px", marginBottom: 0 }}>📁 Escolher imagem</button>
-              {lc.logoUrl && <button onClick={() => setLc(p => ({ ...p, logoUrl: null }))} style={{ background: "none", border: "none", color: accent, opacity: 0.5, cursor: "pointer", fontSize: 12, marginLeft: 10 }}>remover</button>}
+              {lc.logoUrl && <button onClick={() => setLc(p => ({ ...p, logoUrl: null }))} style={{ background: "none", border: "none", color: accent, opacity: 0.5, cursor: "pointer", fontSize: fs.xs, marginLeft: 10 }}>remover</button>}
             </div>
           </div>
         </div>
-        <div style={{ fontSize: 12, color: text, opacity: 0.5, marginBottom: 5 }}>Nome principal</div>
+        <div style={{ fontSize: fs.xs, color: text, opacity: 0.5, marginBottom: 5 }}>Nome principal</div>
         <RenameInput initial={lc.brandName} onSave={v => setLc(p => ({ ...p, brandName: v }))} style={inp} />
-        <div style={{ fontSize: 12, color: text, opacity: 0.5, marginBottom: 5 }}>Subtítulo</div>
+        <div style={{ fontSize: fs.xs, color: text, opacity: 0.5, marginBottom: 5 }}>Subtítulo</div>
         <RenameInput initial={lc.brandSub} onSave={v => setLc(p => ({ ...p, brandSub: v }))} style={inp} />
-        <div style={{ fontSize: 12, color: text, opacity: 0.5, marginBottom: 10, marginTop: 4 }}>Temas prontos</div>
+        <div style={{ fontSize: fs.xs, color: text, opacity: 0.5, marginBottom: 10, marginTop: 4 }}>Temas prontos</div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
           {THEMES.map(t => (
             <div key={t.label} onClick={() => setLc(p => ({ ...p, accentColor: t.accent, bgColor: t.bg }))}
               style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, cursor: "pointer" }}>
               <div style={{ width: 30, height: 30, borderRadius: "50%", background: t.accent, border: lc.accentColor === t.accent ? `3px solid ${text}` : "3px solid transparent" }} />
-              <span style={{ fontSize: 9, color: text, opacity: 0.45 }}>{t.label}</span>
+              <span style={{ fontSize: fs.label, color: text, opacity: 0.45 }}>{t.label}</span>
             </div>
           ))}
         </div>
         <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 11, color: text, opacity: 0.45, marginBottom: 6 }}>Cor destaque</div>
+            <div style={{ fontSize: fs.xs, color: text, opacity: 0.45, marginBottom: 6 }}>Cor destaque</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <input type="color" value={lc.accentColor} onChange={e => setLc(p => ({ ...p, accentColor: e.target.value }))} style={{ width: 38, height: 38, border: "none", borderRadius: 6, cursor: "pointer", padding: 0 }} />
-              <span style={{ fontSize: 11, color: text, opacity: 0.45 }}>{lc.accentColor}</span>
+              <span style={{ fontSize: fs.xs, color: text, opacity: 0.45 }}>{lc.accentColor}</span>
             </div>
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 11, color: text, opacity: 0.45, marginBottom: 6 }}>Cor de fundo</div>
+            <div style={{ fontSize: fs.xs, color: text, opacity: 0.45, marginBottom: 6 }}>Cor de fundo</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <input type="color" value={lc.bgColor} onChange={e => setLc(p => ({ ...p, bgColor: e.target.value }))} style={{ width: 38, height: 38, border: "none", borderRadius: 6, cursor: "pointer", padding: 0 }} />
-              <span style={{ fontSize: 11, color: text, opacity: 0.45 }}>{lc.bgColor}</span>
+              <span style={{ fontSize: fs.xs, color: text, opacity: 0.45 }}>{lc.bgColor}</span>
             </div>
           </div>
         </div>
@@ -443,15 +441,15 @@ export default function App() {
             <div key={m.id} style={{ marginBottom: 14, background: `${accent}08`, borderRadius: 10, padding: "12px 14px", border: `1px solid ${accent}18` }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                 <RenameInput initial={m.name} onSave={name => renameMentee(m.id, name)} style={{ ...inp, marginBottom: 0, flex: 1 }} />
-                <button onClick={() => delMentee(m.id)} style={{ background: "none", border: "none", color: accent, opacity: 0.4, cursor: "pointer", fontSize: 22, padding: "0 4px", flexShrink: 0 }}>×</button>
+                <button onClick={() => delMentee(m.id)} style={{ background: "none", border: "none", color: accent, opacity: 0.4, cursor: "pointer", fontSize: fs.lg, padding: "0 4px", flexShrink: 0 }}>×</button>
               </div>
-              <div style={{ fontSize: 11, color: accent, opacity: 0.6, marginBottom: 4 }}>Link de acesso:</div>
+              <div style={{ fontSize: fs.xs, color: accent, opacity: 0.6, marginBottom: 4 }}>Link de acesso:</div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ fontSize: 12, color: text, opacity: 0.7, background: `${accent}10`, padding: "6px 10px", borderRadius: 6, flex: 1, wordBreak: "break-all" }}>
+                <div style={{ fontSize: fs.xs, color: text, opacity: 0.7, background: `${accent}10`, padding: "6px 10px", borderRadius: 6, flex: 1, wordBreak: "break-all" }}>
                   {baseUrl}/{m.slug || toSlug(m.name)}
                 </div>
                 <button onClick={() => navigator.clipboard.writeText(`${baseUrl}/${m.slug || toSlug(m.name)}`)}
-                  style={{ background: accent, color: bg, border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 11, cursor: "pointer", flexShrink: 0 }}>
+                  style={{ background: accent, color: bg, border: "none", borderRadius: 6, padding: "6px 10px", fontSize: fs.xs, cursor: "pointer", flexShrink: 0 }}>
                   Copiar
                 </button>
               </div>
@@ -471,6 +469,10 @@ export default function App() {
 
   const titles = { home: "Painel", metas: "Metas", tarefas: "Tarefas", historico: "Histórico", config: "Configurações" };
   const isDesktop = window.innerWidth >= 768;
+  // Responsive font scale: mobile smaller, desktop larger
+  const fs = isDesktop
+    ? { xs: 11, sm: 13, base: 16, md: 18, lg: 22, xl: 28, label: 11, title: 26 }
+    : { xs: 10, sm: 13, base: 15, md: 16, lg: 20, xl: 26, label: 10, title: 22 };
   const handleLogout = () => {
     if (role === "mentorado") { window.location.reload(); }
     else { setRole(null); setMenteeId(null); window.history.pushState({}, "", "/"); }
@@ -485,18 +487,18 @@ export default function App() {
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
             {logoUrl ? <img src={logoUrl} alt="logo" style={{ width: 36, height: 36, borderRadius: 8, objectFit: "cover" }} /> : <div style={{ width: 36, height: 36, borderRadius: 8, background: `${accent}18`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🧠</div>}
             <div>
-              <div style={{ fontSize: 9, letterSpacing: 3, textTransform: "uppercase", color: accent, opacity: 0.7 }}>{brandName}</div>
-              <div style={{ fontSize: 13, fontStyle: "italic", opacity: 0.8 }}>{brandSub}</div>
+              <div style={{ fontSize: fs.label, letterSpacing: 3, textTransform: "uppercase", color: accent, opacity: 0.7 }}>{brandName}</div>
+              <div style={{ fontSize: fs.sm, fontStyle: "italic", opacity: 0.8 }}>{brandSub}</div>
             </div>
           </div>
           {role === "mentor" && (
             <div>
-              <div style={{ fontSize: 9, letterSpacing: 3, textTransform: "uppercase", color: accent, opacity: 0.5, marginBottom: 6 }}>Mentorado</div>
+              <div style={{ fontSize: fs.label, letterSpacing: 3, textTransform: "uppercase", color: accent, opacity: 0.5, marginBottom: 6 }}>Mentorado</div>
               {mentees.map(m => (
                 <button key={m.id} onClick={() => setMenteeId(m.id)} style={{
                   display: "block", width: "100%", textAlign: "left", background: menteeId === m.id ? `${accent}20` : "transparent",
                   color: menteeId === m.id ? accent : text, border: "none", borderRadius: 6, padding: "5px 8px",
-                  fontSize: 13, cursor: "pointer", fontFamily: "'Palatino Linotype',serif", marginBottom: 2, opacity: menteeId === m.id ? 1 : 0.6,
+                  fontSize: fs.sm, cursor: "pointer", fontFamily: "'Palatino Linotype',serif", marginBottom: 2, opacity: menteeId === m.id ? 1 : 0.6,
                 }}>{m.name}</button>
               ))}
             </div>
@@ -508,7 +510,7 @@ export default function App() {
               display: "block", width: "100%", textAlign: "left",
               background: view === n.id ? accent : "transparent",
               color: view === n.id ? bg : text, border: "none", borderRadius: 8,
-              padding: "10px 14px", fontSize: 13, cursor: "pointer",
+              padding: "10px 14px", fontSize: fs.sm, cursor: "pointer",
               fontFamily: "'Palatino Linotype',serif", marginBottom: 4,
               fontWeight: view === n.id ? "bold" : "normal", opacity: view === n.id ? 1 : 0.65,
               letterSpacing: 0.3,
@@ -516,13 +518,13 @@ export default function App() {
           ))}
         </div>
         <div style={{ padding: "0 12px" }}>
-          <button onClick={handleLogout} style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: `1px solid ${accent}28`, color: accent, borderRadius: 8, padding: "8px 14px", fontSize: 12, cursor: "pointer", opacity: 0.6 }}>Sair</button>
+          <button onClick={handleLogout} style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: `1px solid ${accent}28`, color: accent, borderRadius: 8, padding: "8px 14px", fontSize: fs.xs, cursor: "pointer", opacity: 0.6 }}>← Início</button>
         </div>
       </div>
       {/* Main content */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ padding: "24px 36px 16px", borderBottom: `1px solid ${accent}18` }}>
-          <h1 style={{ fontSize: 24, fontWeight: "normal", fontStyle: "italic", margin: 0, color: text }}>{titles[view]}</h1>
+          <h1 style={{ fontSize: isDesktop ? 28 : 22, fontWeight: "normal", fontStyle: "italic", margin: 0, color: text }}>{titles[view]}</h1>
         </div>
         <div style={{ flex: 1, overflowY: "auto", padding: "24px 36px" }}>
           {view === "home" && <HomeView />}
@@ -540,12 +542,12 @@ export default function App() {
   return (
     <div style={{ height: "100vh", background: bg, color: text, fontFamily: "'Palatino Linotype','Book Antiqua',Palatino,serif", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <div style={{ padding: "16px 18px 12px", borderBottom: `1px solid ${accent}22`, display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
-        {logoUrl ? <img src={logoUrl} alt="logo" style={{ width: 36, height: 36, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} /> : <div style={{ width: 36, height: 36, borderRadius: 8, background: `${accent}18`, border: `1px solid ${accent}28`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>🧠</div>}
+        {logoUrl ? <img src={logoUrl} alt="logo" style={{ width: 36, height: 36, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} /> : <div style={{ width: 36, height: 36, borderRadius: 8, background: `${accent}18`, border: `1px solid ${accent}28`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: fs.md, flexShrink: 0 }}>🧠</div>}
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 9, letterSpacing: 4, textTransform: "uppercase", color: accent, opacity: 0.75 }}>{brandName}</div>
-          <h1 style={{ fontSize: 16, fontWeight: "normal", fontStyle: "italic", margin: 0, lineHeight: 1.2 }}>{titles[view]}</h1>
+          <div style={{ fontSize: fs.label, letterSpacing: 4, textTransform: "uppercase", color: accent, opacity: 0.75 }}>{brandName}</div>
+          <h1 style={{ fontSize: fs.md, fontWeight: "normal", fontStyle: "italic", margin: 0, lineHeight: 1.2 }}>{titles[view]}</h1>
         </div>
-        <button onClick={handleLogout} style={{ background: "none", border: `1px solid ${accent}28`, color: accent, borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer", opacity: 0.7 }}>Sair</button>
+        <button onClick={handleLogout} style={{ background: "none", border: `1px solid ${accent}28`, color: accent, borderRadius: 6, padding: "5px 10px", fontSize: fs.xs, cursor: "pointer", opacity: 0.7 }}>← Início</button>
       </div>
       <div style={{ flex: 1, overflowY: "auto", padding: "16px 18px 8px" }}>
         {view === "home" && <HomeView />}
@@ -560,7 +562,7 @@ export default function App() {
           <button key={n.id} onClick={() => setView(n.id)} style={{
             flex: 1, background: view === n.id ? accent : `${accent}10`,
             color: view === n.id ? bg : text, border: "none", borderRadius: 7,
-            padding: "9px 2px", fontSize: 10, letterSpacing: 0.7, textTransform: "uppercase",
+            padding: "9px 2px", fontSize: fs.label, letterSpacing: 0.7, textTransform: "uppercase",
             cursor: "pointer", fontFamily: "'Palatino Linotype',serif",
             fontWeight: view === n.id ? "bold" : "normal", opacity: view === n.id ? 1 : 0.7,
           }}>{n.label}</button>
