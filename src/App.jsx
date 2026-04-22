@@ -4,7 +4,7 @@ const SUPABASE_URL = "https://oeentaqyqzulymbannrd.supabase.co";
 const SUPABASE_KEY = "sb_publishable_trJSD67DmaZ394X98wBNeg_-nFBdiRR";
 
 const sbFetch = async (id) => {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/dados?id=eq.${id}&select=valor`, {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/dados?id=eq.${encodeURIComponent(id)}&select=valor`, {
     headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
   });
   const data = await res.json();
@@ -21,7 +21,7 @@ const sbSave = async (id, valor) => {
 
 const todayStr = () => new Date().toISOString().split("T")[0];
 const DEFAULT_CONFIG = { brandName: "Mentoria Psi", brandSub: "Alto Fluxo", accentColor: "#e2b96f", bgColor: "#12121f", logoUrl: null };
-const DEFAULT_MENTEES = [{ id: 1, name: "Mentorado 1" }, { id: 2, name: "Mentorado 2" }, { id: 3, name: "Mentorado 3" }];
+const DEFAULT_MENTEES = [{ id: 1, name: "Mentorado 1", slug: "mentorado-1" }, { id: 2, name: "Mentorado 2", slug: "mentorado-2" }, { id: 3, name: "Mentorado 3", slug: "mentorado-3" }];
 const THEMES = [
   { label: "Dourado", accent: "#e2b96f", bg: "#12121f" },
   { label: "Água", accent: "#7ec8c8", bg: "#0d1f2d" },
@@ -30,6 +30,25 @@ const THEMES = [
   { label: "Coral", accent: "#f4836b", bg: "#1f0f0d" },
   { label: "Lilás", accent: "#b39ddb", bg: "#130f1f" },
 ];
+
+const toSlug = (str) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+
+function EditableText({ value, onSave, style, multiline }) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState(value);
+  useEffect(() => setVal(value), [value]);
+  const commit = () => { if (val.trim()) onSave(val.trim()); setEditing(false); };
+  if (editing) {
+    if (multiline) return <textarea value={val} onChange={e => setVal(e.target.value)} onBlur={commit} onKeyDown={e => e.key === "Escape" && setEditing(false)} autoFocus rows={3} style={{ ...style, resize: "none", width: "100%" }} />;
+    return <input value={val} onChange={e => setVal(e.target.value)} onBlur={commit} onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }} autoFocus style={{ ...style, width: "100%" }} />;
+  }
+  return (
+    <span style={{ display: "flex", alignItems: "flex-start", gap: 6, flex: 1 }}>
+      <span style={{ flex: 1 }}>{value}</span>
+      <button onClick={() => setEditing(true)} style={{ background: "none", border: "none", cursor: "pointer", opacity: 0.35, fontSize: 13, padding: "0 2px", flexShrink: 0, lineHeight: 1 }}>✏️</button>
+    </span>
+  );
+}
 
 function LocalInput({ onCommit, placeholder, style, multiline, rows }) {
   const [val, setVal] = useState("");
@@ -45,8 +64,7 @@ function RenameInput({ initial, onSave, style }) {
   return <input value={val} onChange={e => setVal(e.target.value)} onBlur={() => onSave(val)} onKeyDown={e => e.key === "Enter" && onSave(val)} style={style} />;
 }
 
-// TarefaCard recebe expanded e onToggleExpand de fora — estado nunca fica interno
-const TarefaCard = memo(({ t, expanded, onToggleExpand, accent, bg, text, today, onToggle, onDelete, onAddAcao, onToggleAcao, onDelAcao }) => {
+const TarefaCard = memo(({ t, expanded, onToggleExpand, accent, bg, text, today, onToggle, onDelete, onEdit, onEditTitulo, onAddAcao, onToggleAcao, onDelAcao, onEditAcao }) => {
   const acoes = t.acoes || [];
   const acoesFeitas = acoes.filter(a => a.done).length;
   const inpStyle = { width: "100%", background: `${accent}0e`, border: `1px solid ${accent}28`, borderRadius: 8, padding: "8px 12px", color: text, fontSize: 13, fontFamily: "'Palatino Linotype',serif", outline: "none", boxSizing: "border-box" };
@@ -60,7 +78,9 @@ const TarefaCard = memo(({ t, expanded, onToggleExpand, accent, bg, text, today,
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-            <div style={{ fontSize: 14, fontWeight: "bold", lineHeight: 1.4, textDecoration: t.done ? "line-through" : "none", opacity: t.done ? 0.4 : 1 }}>{t.titulo}</div>
+            <div style={{ flex: 1, fontSize: 14, fontWeight: "bold", lineHeight: 1.4, textDecoration: t.done ? "line-through" : "none", opacity: t.done ? 0.4 : 1 }}>
+              <EditableText value={t.titulo} onSave={(v) => onEditTitulo(t.id, v)} style={{ background: `${accent}0e`, border: `1px solid ${accent}28`, borderRadius: 6, padding: "4px 8px", color: text, fontSize: 14, fontFamily: "'Palatino Linotype',serif", outline: "none" }} />
+            </div>
             <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
               {acoes.length > 0 && <span style={{ fontSize: 11, color: accent, opacity: 0.65 }}>{acoesFeitas}/{acoes.length}</span>}
               <button onClick={() => onToggleExpand(t.id)} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontSize: 14, opacity: 0.6, padding: "0 2px" }}>{expanded ? "▲" : "▼"}</button>
@@ -79,7 +99,9 @@ const TarefaCard = memo(({ t, expanded, onToggleExpand, accent, bg, text, today,
               <div style={mkCircle(a.done, true)} onClick={() => onToggleAcao(t.id, a.id)}>
                 {a.done && <span style={{ color: bg, fontSize: 9 }}>✓</span>}
               </div>
-              <span style={{ flex: 1, fontSize: 13, textDecoration: a.done ? "line-through" : "none", opacity: a.done ? 0.4 : 0.9, color: text }}>{a.text}</span>
+              <span style={{ flex: 1, fontSize: 13, textDecoration: a.done ? "line-through" : "none", opacity: a.done ? 0.4 : 0.9, color: text }}>
+                <EditableText value={a.text} onSave={(v) => onEditAcao(t.id, a.id, v)} style={{ background: `${accent}0e`, border: `1px solid ${accent}28`, borderRadius: 6, padding: "3px 8px", color: text, fontSize: 13, fontFamily: "'Palatino Linotype',serif", outline: "none" }} />
+              </span>
               <button onClick={() => onDelAcao(t.id, a.id)} style={{ background: "none", border: "none", color: accent, opacity: 0.3, cursor: "pointer", fontSize: 17, lineHeight: 1 }}>×</button>
             </div>
           ))}
@@ -105,16 +127,33 @@ export default function App() {
   const saveTimer = useRef({});
   const logoRef = useRef();
 
+  // Detect slug in URL for direct mentee access
   useEffect(() => {
-    const loadAll = async () => {
-      const [cfg, men, tasks] = await Promise.all([sbFetch("config"), sbFetch("mentees"), sbFetch("tasks")]);
-      if (cfg) setConfig(cfg);
-      if (men) setMentees(men);
-      if (tasks) setTaskData(tasks);
-      setLoading(false);
-      setTimeout(() => setReady(true), 80);
-    };
-    loadAll();
+    const path = window.location.pathname.replace("/", "").toLowerCase();
+    if (path && path !== "") {
+      const loadAll = async () => {
+        const [cfg, men, tasks] = await Promise.all([sbFetch("config"), sbFetch("mentees"), sbFetch("tasks")]);
+        const resolvedMentees = men || DEFAULT_MENTEES;
+        if (cfg) setConfig(cfg);
+        setMentees(resolvedMentees);
+        if (tasks) setTaskData(tasks);
+        const found = resolvedMentees.find(m => (m.slug || toSlug(m.name)) === path);
+        if (found) { setRole("mentorado"); setMenteeId(found.id); }
+        setLoading(false);
+        setTimeout(() => setReady(true), 80);
+      };
+      loadAll();
+    } else {
+      const loadAll = async () => {
+        const [cfg, men, tasks] = await Promise.all([sbFetch("config"), sbFetch("mentees"), sbFetch("tasks")]);
+        if (cfg) setConfig(cfg);
+        if (men) setMentees(men);
+        if (tasks) setTaskData(tasks);
+        setLoading(false);
+        setTimeout(() => setReady(true), 80);
+      };
+      loadAll();
+    }
   }, []);
 
   const debounceSave = useCallback((key, val, delay = 2000) => {
@@ -126,9 +165,7 @@ export default function App() {
   useEffect(() => { if (!loading) debounceSave("mentees", mentees); }, [mentees, loading]);
   useEffect(() => { if (!loading) debounceSave("tasks", taskData); }, [taskData, loading]);
 
-  const toggleExpand = useCallback((id) => {
-    setExpandedCards(prev => ({ ...prev, [id]: !prev[id] }));
-  }, []);
+  const toggleExpand = useCallback((id) => setExpandedCards(prev => ({ ...prev, [id]: !prev[id] })), []);
 
   const { accentColor: accent, bgColor: bg, brandName, brandSub, logoUrl } = config;
   const text = "#f0ece0";
@@ -142,25 +179,19 @@ export default function App() {
   const addMeta = useCallback((txt) => { if (txt.trim()) updField("metas", [...getMetas(), { id: Date.now(), text: txt.trim(), done: false, createdAt: today, doneAt: null }]); }, [getMetas, updField, today]);
   const toggleMeta = useCallback((id) => updField("metas", getMetas().map(m => m.id === id ? { ...m, done: !m.done, doneAt: !m.done ? today : null } : m)), [getMetas, updField, today]);
   const delMeta = useCallback((id) => updField("metas", getMetas().filter(m => m.id !== id)), [getMetas, updField]);
+  const editMeta = useCallback((id, text) => updField("metas", getMetas().map(m => m.id === id ? { ...m, text } : m)), [getMetas, updField]);
 
-  const addTarefa = useCallback((titulo, date) => {
-    if (titulo.trim()) updField("tarefas", [...getTarefas(), { id: Date.now(), titulo: titulo.trim(), date, acoes: [], done: false }]);
-  }, [getTarefas, updField]);
+  const addTarefa = useCallback((titulo, date) => { if (titulo.trim()) updField("tarefas", [...getTarefas(), { id: Date.now(), titulo: titulo.trim(), date, acoes: [], done: false }]); }, [getTarefas, updField]);
   const toggleTarefa = useCallback((id) => updField("tarefas", getTarefas().map(t => t.id === id ? { ...t, done: !t.done } : t)), [getTarefas, updField]);
   const delTarefa = useCallback((id) => updField("tarefas", getTarefas().filter(t => t.id !== id)), [getTarefas, updField]);
-  const addAcao = useCallback((tarefaId, txt) => {
-    if (!txt.trim()) return;
-    updField("tarefas", getTarefas().map(t => t.id === tarefaId ? { ...t, acoes: [...(t.acoes || []), { id: Date.now(), text: txt.trim(), done: false }] } : t));
-  }, [getTarefas, updField]);
-  const toggleAcao = useCallback((tarefaId, acaoId) => {
-    updField("tarefas", getTarefas().map(t => t.id === tarefaId ? { ...t, acoes: (t.acoes || []).map(a => a.id === acaoId ? { ...a, done: !a.done } : a) } : t));
-  }, [getTarefas, updField]);
-  const delAcao = useCallback((tarefaId, acaoId) => {
-    updField("tarefas", getTarefas().map(t => t.id === tarefaId ? { ...t, acoes: (t.acoes || []).filter(a => a.id !== acaoId) } : t));
-  }, [getTarefas, updField]);
+  const editTitulo = useCallback((id, titulo) => updField("tarefas", getTarefas().map(t => t.id === id ? { ...t, titulo } : t)), [getTarefas, updField]);
+  const addAcao = useCallback((tarefaId, txt) => { if (!txt.trim()) return; updField("tarefas", getTarefas().map(t => t.id === tarefaId ? { ...t, acoes: [...(t.acoes || []), { id: Date.now(), text: txt.trim(), done: false }] } : t)); }, [getTarefas, updField]);
+  const toggleAcao = useCallback((tarefaId, acaoId) => updField("tarefas", getTarefas().map(t => t.id === tarefaId ? { ...t, acoes: (t.acoes || []).map(a => a.id === acaoId ? { ...a, done: !a.done } : a) } : t)), [getTarefas, updField]);
+  const delAcao = useCallback((tarefaId, acaoId) => updField("tarefas", getTarefas().map(t => t.id === tarefaId ? { ...t, acoes: (t.acoes || []).filter(a => a.id !== acaoId) } : t)), [getTarefas, updField]);
+  const editAcao = useCallback((tarefaId, acaoId, text) => updField("tarefas", getTarefas().map(t => t.id === tarefaId ? { ...t, acoes: (t.acoes || []).map(a => a.id === acaoId ? { ...a, text } : a) } : t)), [getTarefas, updField]);
 
-  const addMentee = () => setMentees(p => [...p, { id: Date.now(), name: `Mentorado ${p.length + 1}` }]);
-  const renameMentee = (id, name) => setMentees(p => p.map(m => m.id === id ? { ...m, name } : m));
+  const addMentee = () => { const name = `Mentorado ${mentees.length + 1}`; setMentees(p => [...p, { id: Date.now(), name, slug: toSlug(name) }]); };
+  const renameMentee = (id, name) => setMentees(p => p.map(m => m.id === id ? { ...m, name, slug: toSlug(name) } : m));
   const delMentee = (id) => { setMentees(p => p.filter(m => m.id !== id)); if (menteeId === id) setMenteeId(null); };
 
   const inp = { width: "100%", background: `${accent}0e`, border: `1px solid ${accent}28`, borderRadius: 8, padding: "11px 13px", color: text, fontSize: 14, fontFamily: "'Palatino Linotype',serif", outline: "none", boxSizing: "border-box", marginBottom: 8 };
@@ -171,7 +202,9 @@ export default function App() {
   const empty = { textAlign: "center", opacity: 0.3, fontSize: 13, fontStyle: "italic", padding: "28px 0" };
   const flatCard = { background: `${accent}0d`, border: `1px solid ${accent}22`, borderRadius: 11, padding: "13px 14px", marginBottom: 10, display: "flex", alignItems: "flex-start", gap: 11 };
 
-  const cardProps = { accent, bg, text, today, onToggle: toggleTarefa, onDelete: delTarefa, onAddAcao: addAcao, onToggleAcao: toggleAcao, onDelAcao: delAcao, onToggleExpand: toggleExpand };
+  const cardProps = { accent, bg, text, today, onToggle: toggleTarefa, onDelete: delTarefa, onEditTitulo: editTitulo, onAddAcao: addAcao, onToggleAcao: toggleAcao, onDelAcao: delAcao, onEditAcao: editAcao, onToggleExpand: toggleExpand };
+
+  const baseUrl = window.location.origin;
 
   const navItems = [
     { id: "home", label: "Início" },
@@ -269,13 +302,15 @@ export default function App() {
         <div style={secLabel}>Metas</div>
         {metas.length === 0 && <div style={empty}>Nenhuma meta cadastrada</div>}
         {metas.map(m => (
-          <div key={m.id} style={{ ...flatCard, cursor: "pointer" }} onClick={() => toggleMeta(m.id)}>
-            <div style={mkCircle(m.done)}>{m.done && <span style={{ color: bg, fontSize: 10 }}>✓</span>}</div>
+          <div key={m.id} style={flatCard}>
+            <div style={{ ...mkCircle(m.done), cursor: "pointer" }} onClick={() => toggleMeta(m.id)}>{m.done && <span style={{ color: bg, fontSize: 10 }}>✓</span>}</div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, lineHeight: 1.5, textDecoration: m.done ? "line-through" : "none", opacity: m.done ? 0.4 : 1 }}>{m.text}</div>
+              <div style={{ fontSize: 14, lineHeight: 1.5, textDecoration: m.done ? "line-through" : "none", opacity: m.done ? 0.4 : 1 }}>
+                <EditableText value={m.text} onSave={(v) => editMeta(m.id, v)} style={{ background: `${accent}0e`, border: `1px solid ${accent}28`, borderRadius: 6, padding: "4px 8px", color: text, fontSize: 14, fontFamily: "'Palatino Linotype',serif", outline: "none" }} multiline />
+              </div>
               <div style={{ fontSize: 11, color: accent, opacity: 0.55, marginTop: 3 }}>{m.done ? `✓ ${m.doneAt}` : `Criada ${m.createdAt}`}</div>
             </div>
-            <button style={{ background: "none", border: "none", color: accent, opacity: 0.35, cursor: "pointer", fontSize: 20, padding: "0 2px" }} onClick={e => { e.stopPropagation(); delMeta(m.id); }}>×</button>
+            <button style={{ background: "none", border: "none", color: accent, opacity: 0.35, cursor: "pointer", fontSize: 20, padding: "0 2px", flexShrink: 0 }} onClick={() => delMeta(m.id)}>×</button>
           </div>
         ))}
         <div style={{ borderTop: `1px solid ${accent}18`, paddingTop: 18, marginTop: 12 }}>
@@ -401,16 +436,30 @@ export default function App() {
           </div>
         </div>
         <button onClick={() => setConfig({ ...lc })} style={primaryBtn}>✓ Salvar Aparência</button>
+
         <div style={{ borderTop: `1px solid ${accent}18`, paddingTop: 20, marginTop: 8 }}>
-          <div style={secLabel}>Mentorados</div>
+          <div style={secLabel}>Mentorados & Links</div>
           {mentees.map(m => (
-            <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <RenameInput initial={m.name} onSave={name => renameMentee(m.id, name)} style={{ ...inp, marginBottom: 0, flex: 1 }} />
-              <button onClick={() => delMentee(m.id)} style={{ background: "none", border: "none", color: accent, opacity: 0.4, cursor: "pointer", fontSize: 22, padding: "0 4px", flexShrink: 0 }}>×</button>
+            <div key={m.id} style={{ marginBottom: 14, background: `${accent}08`, borderRadius: 10, padding: "12px 14px", border: `1px solid ${accent}18` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                <RenameInput initial={m.name} onSave={name => renameMentee(m.id, name)} style={{ ...inp, marginBottom: 0, flex: 1 }} />
+                <button onClick={() => delMentee(m.id)} style={{ background: "none", border: "none", color: accent, opacity: 0.4, cursor: "pointer", fontSize: 22, padding: "0 4px", flexShrink: 0 }}>×</button>
+              </div>
+              <div style={{ fontSize: 11, color: accent, opacity: 0.6, marginBottom: 4 }}>Link de acesso:</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ fontSize: 12, color: text, opacity: 0.7, background: `${accent}10`, padding: "6px 10px", borderRadius: 6, flex: 1, wordBreak: "break-all" }}>
+                  {baseUrl}/{m.slug || toSlug(m.name)}
+                </div>
+                <button onClick={() => navigator.clipboard.writeText(`${baseUrl}/${m.slug || toSlug(m.name)}`)}
+                  style={{ background: accent, color: bg, border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 11, cursor: "pointer", flexShrink: 0 }}>
+                  Copiar
+                </button>
+              </div>
             </div>
           ))}
           <button onClick={addMentee} style={ghostBtn}>+ Adicionar Mentorado</button>
         </div>
+
         <div style={{ borderTop: `1px solid ${accent}18`, paddingTop: 16, marginTop: 8 }}>
           <div style={secLabel}>Dados</div>
           <button onClick={() => { if (window.confirm("Apagar TODOS os dados?")) { setTaskData({}); } }} style={{ ...ghostBtn, color: "#f4836b", borderColor: "#f4836b40" }}>🗑 Apagar todos os dados</button>
@@ -429,7 +478,7 @@ export default function App() {
           <div style={{ fontSize: 9, letterSpacing: 4, textTransform: "uppercase", color: accent, opacity: 0.75 }}>{brandName}</div>
           <h1 style={{ fontSize: 18, fontWeight: "normal", fontStyle: "italic", margin: 0, lineHeight: 1.2 }}>{titles[view]}</h1>
         </div>
-        <button onClick={() => { setRole(null); setMenteeId(null); }} style={{ background: "none", border: `1px solid ${accent}28`, color: accent, borderRadius: 6, padding: "5px 11px", fontSize: 11, cursor: "pointer", opacity: 0.7 }}>Sair</button>
+        <button onClick={() => { setRole(null); setMenteeId(null); window.history.pushState({}, "", "/"); }} style={{ background: "none", border: `1px solid ${accent}28`, color: accent, borderRadius: 6, padding: "5px 11px", fontSize: 11, cursor: "pointer", opacity: 0.7 }}>Sair</button>
       </div>
       <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 12px" }}>
         {view === "home" && <HomeView />}
