@@ -14,10 +14,7 @@ const sbFetch = async (id) => {
 const sbSave = async (id, valor) => {
   await fetch(`${SUPABASE_URL}/rest/v1/dados`, {
     method: "POST",
-    headers: {
-      apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`,
-      "Content-Type": "application/json", Prefer: "resolution=merge-duplicates"
-    },
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates" },
     body: JSON.stringify({ id, valor })
   });
 };
@@ -48,18 +45,17 @@ function RenameInput({ initial, onSave, style }) {
   return <input value={val} onChange={e => setVal(e.target.value)} onBlur={() => onSave(val)} onKeyDown={e => e.key === "Enter" && onSave(val)} style={style} />;
 }
 
-// Defined OUTSIDE App so it never gets recreated on parent re-render
-const TarefaCard = memo(({ t, accent, bg, text, todayStr, onToggle, onDelete, onAddAcao, onToggleAcao, onDelAcao }) => {
-  const [expanded, setExpanded] = useState(false);
+// TarefaCard recebe expanded e onToggleExpand de fora — estado nunca fica interno
+const TarefaCard = memo(({ t, expanded, onToggleExpand, accent, bg, text, today, onToggle, onDelete, onAddAcao, onToggleAcao, onDelAcao }) => {
   const acoes = t.acoes || [];
   const acoesFeitas = acoes.filter(a => a.done).length;
-  const inp = { width: "100%", background: `${accent}0e`, border: `1px solid ${accent}28`, borderRadius: 8, padding: "8px 12px", color: text, fontSize: 13, fontFamily: "'Palatino Linotype',serif", outline: "none", boxSizing: "border-box", marginBottom: 0 };
-  const circle = (done, square) => ({ width: square ? 16 : 20, height: square ? 16 : 20, minWidth: square ? 16 : 20, borderRadius: square ? 4 : "50%", border: `2px solid ${accent}`, background: done ? accent : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer" });
+  const inpStyle = { width: "100%", background: `${accent}0e`, border: `1px solid ${accent}28`, borderRadius: 8, padding: "8px 12px", color: text, fontSize: 13, fontFamily: "'Palatino Linotype',serif", outline: "none", boxSizing: "border-box" };
+  const mkCircle = (done, sq) => ({ width: sq ? 16 : 20, height: sq ? 16 : 20, minWidth: sq ? 16 : 20, borderRadius: sq ? 4 : "50%", border: `2px solid ${accent}`, background: done ? accent : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer" });
 
   return (
     <div style={{ background: `${accent}0d`, border: `1px solid ${accent}22`, borderRadius: 11, padding: "13px 14px", marginBottom: 10 }}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 11 }}>
-        <div style={circle(t.done, false)} onClick={() => onToggle(t.id)}>
+        <div style={mkCircle(t.done, false)} onClick={() => onToggle(t.id)}>
           {t.done && <span style={{ color: bg, fontSize: 10 }}>✓</span>}
         </div>
         <div style={{ flex: 1 }}>
@@ -67,21 +63,20 @@ const TarefaCard = memo(({ t, accent, bg, text, todayStr, onToggle, onDelete, on
             <div style={{ fontSize: 14, fontWeight: "bold", lineHeight: 1.4, textDecoration: t.done ? "line-through" : "none", opacity: t.done ? 0.4 : 1 }}>{t.titulo}</div>
             <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
               {acoes.length > 0 && <span style={{ fontSize: 11, color: accent, opacity: 0.65 }}>{acoesFeitas}/{acoes.length}</span>}
-              <button onClick={() => setExpanded(e => !e)} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontSize: 14, opacity: 0.6, padding: "0 2px" }}>{expanded ? "▲" : "▼"}</button>
+              <button onClick={() => onToggleExpand(t.id)} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontSize: 14, opacity: 0.6, padding: "0 2px" }}>{expanded ? "▲" : "▼"}</button>
               <button onClick={() => onDelete(t.id)} style={{ background: "none", border: "none", color: accent, opacity: 0.3, cursor: "pointer", fontSize: 20, padding: "0 2px", lineHeight: 1 }}>×</button>
             </div>
           </div>
-          <div style={{ fontSize: 11, color: accent, opacity: 0.5, marginTop: 2 }}>{t.date === todayStr ? "📅 Hoje" : t.date}</div>
+          <div style={{ fontSize: 11, color: accent, opacity: 0.5, marginTop: 2 }}>{t.date === today ? "📅 Hoje" : t.date}</div>
         </div>
       </div>
-
       {expanded && (
         <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${accent}18` }}>
           <div style={{ fontSize: 10, letterSpacing: 3, textTransform: "uppercase", color: accent, opacity: 0.6, marginBottom: 8 }}>Ações</div>
           {acoes.length === 0 && <div style={{ fontSize: 12, opacity: 0.3, fontStyle: "italic", marginBottom: 8 }}>Nenhuma ação ainda</div>}
           {acoes.map(a => (
             <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 8 }}>
-              <div style={circle(a.done, true)} onClick={() => onToggleAcao(t.id, a.id)}>
+              <div style={mkCircle(a.done, true)} onClick={() => onToggleAcao(t.id, a.id)}>
                 {a.done && <span style={{ color: bg, fontSize: 9 }}>✓</span>}
               </div>
               <span style={{ flex: 1, fontSize: 13, textDecoration: a.done ? "line-through" : "none", opacity: a.done ? 0.4 : 0.9, color: text }}>{a.text}</span>
@@ -89,7 +84,7 @@ const TarefaCard = memo(({ t, accent, bg, text, todayStr, onToggle, onDelete, on
             </div>
           ))}
           <div style={{ marginTop: 8 }}>
-            <LocalInput onCommit={(txt) => onAddAcao(t.id, txt)} placeholder="Nova ação... (Enter para salvar)" style={inp} />
+            <LocalInput onCommit={(txt) => onAddAcao(t.id, txt)} placeholder="Nova ação... (Enter para salvar)" style={inpStyle} />
           </div>
         </div>
       )}
@@ -106,6 +101,7 @@ export default function App() {
   const [view, setView] = useState("home");
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [expandedCards, setExpandedCards] = useState({});
   const saveTimer = useRef({});
   const logoRef = useRef();
 
@@ -130,40 +126,38 @@ export default function App() {
   useEffect(() => { if (!loading) debounceSave("mentees", mentees); }, [mentees, loading]);
   useEffect(() => { if (!loading) debounceSave("tasks", taskData); }, [taskData, loading]);
 
+  const toggleExpand = useCallback((id) => {
+    setExpandedCards(prev => ({ ...prev, [id]: !prev[id] }));
+  }, []);
+
   const { accentColor: accent, bgColor: bg, brandName, brandSub, logoUrl } = config;
   const text = "#f0ece0";
+  const today = todayStr();
 
   const dataKey = menteeId ? `m_${menteeId}` : "__none__";
-  const getMetas = () => taskData[dataKey]?.metas || [];
-  const getTarefas = () => taskData[dataKey]?.tarefas || [];
-  const updField = (field, val) => setTaskData(p => ({ ...p, [dataKey]: { ...p[dataKey], [field]: val } }));
+  const getMetas = useCallback(() => taskData[dataKey]?.metas || [], [taskData, dataKey]);
+  const getTarefas = useCallback(() => taskData[dataKey]?.tarefas || [], [taskData, dataKey]);
+  const updField = useCallback((field, val) => setTaskData(p => ({ ...p, [dataKey]: { ...p[dataKey], [field]: val } })), [dataKey]);
 
-  const addMeta = (txt) => { if (txt.trim()) updField("metas", [...getMetas(), { id: Date.now(), text: txt.trim(), done: false, createdAt: todayStr(), doneAt: null }]); };
-  const toggleMeta = (id) => updField("metas", getMetas().map(m => m.id === id ? { ...m, done: !m.done, doneAt: !m.done ? todayStr() : null } : m));
-  const delMeta = (id) => updField("metas", getMetas().filter(m => m.id !== id));
+  const addMeta = useCallback((txt) => { if (txt.trim()) updField("metas", [...getMetas(), { id: Date.now(), text: txt.trim(), done: false, createdAt: today, doneAt: null }]); }, [getMetas, updField, today]);
+  const toggleMeta = useCallback((id) => updField("metas", getMetas().map(m => m.id === id ? { ...m, done: !m.done, doneAt: !m.done ? today : null } : m)), [getMetas, updField, today]);
+  const delMeta = useCallback((id) => updField("metas", getMetas().filter(m => m.id !== id)), [getMetas, updField]);
 
   const addTarefa = useCallback((titulo, date) => {
     if (titulo.trim()) updField("tarefas", [...getTarefas(), { id: Date.now(), titulo: titulo.trim(), date, acoes: [], done: false }]);
-  }, [taskData, dataKey]);
-
-  const toggleTarefa = useCallback((id) => updField("tarefas", getTarefas().map(t => t.id === id ? { ...t, done: !t.done } : t)), [taskData, dataKey]);
-  const delTarefa = useCallback((id) => updField("tarefas", getTarefas().filter(t => t.id !== id)), [taskData, dataKey]);
-
+  }, [getTarefas, updField]);
+  const toggleTarefa = useCallback((id) => updField("tarefas", getTarefas().map(t => t.id === id ? { ...t, done: !t.done } : t)), [getTarefas, updField]);
+  const delTarefa = useCallback((id) => updField("tarefas", getTarefas().filter(t => t.id !== id)), [getTarefas, updField]);
   const addAcao = useCallback((tarefaId, txt) => {
     if (!txt.trim()) return;
-    updField("tarefas", getTarefas().map(t => t.id === tarefaId
-      ? { ...t, acoes: [...(t.acoes || []), { id: Date.now(), text: txt.trim(), done: false }] } : t));
-  }, [taskData, dataKey]);
-
+    updField("tarefas", getTarefas().map(t => t.id === tarefaId ? { ...t, acoes: [...(t.acoes || []), { id: Date.now(), text: txt.trim(), done: false }] } : t));
+  }, [getTarefas, updField]);
   const toggleAcao = useCallback((tarefaId, acaoId) => {
-    updField("tarefas", getTarefas().map(t => t.id === tarefaId
-      ? { ...t, acoes: (t.acoes || []).map(a => a.id === acaoId ? { ...a, done: !a.done } : a) } : t));
-  }, [taskData, dataKey]);
-
+    updField("tarefas", getTarefas().map(t => t.id === tarefaId ? { ...t, acoes: (t.acoes || []).map(a => a.id === acaoId ? { ...a, done: !a.done } : a) } : t));
+  }, [getTarefas, updField]);
   const delAcao = useCallback((tarefaId, acaoId) => {
-    updField("tarefas", getTarefas().map(t => t.id === tarefaId
-      ? { ...t, acoes: (t.acoes || []).filter(a => a.id !== acaoId) } : t));
-  }, [taskData, dataKey]);
+    updField("tarefas", getTarefas().map(t => t.id === tarefaId ? { ...t, acoes: (t.acoes || []).filter(a => a.id !== acaoId) } : t));
+  }, [getTarefas, updField]);
 
   const addMentee = () => setMentees(p => [...p, { id: Date.now(), name: `Mentorado ${p.length + 1}` }]);
   const renameMentee = (id, name) => setMentees(p => p.map(m => m.id === id ? { ...m, name } : m));
@@ -173,11 +167,11 @@ export default function App() {
   const primaryBtn = { background: accent, color: bg, border: "none", borderRadius: 8, padding: "11px 18px", fontSize: 13, fontWeight: "bold", cursor: "pointer", width: "100%", fontFamily: "'Palatino Linotype',serif", marginBottom: 8, letterSpacing: 0.6 };
   const ghostBtn = { background: "transparent", color: accent, border: `1px solid ${accent}38`, borderRadius: 8, padding: "11px 18px", fontSize: 13, cursor: "pointer", width: "100%", fontFamily: "'Palatino Linotype',serif", marginBottom: 8 };
   const secLabel = { fontSize: 10, letterSpacing: 4, textTransform: "uppercase", color: accent, opacity: 0.75, marginBottom: 12 };
-  const circle = (done) => ({ width: 20, height: 20, minWidth: 20, borderRadius: "50%", border: `2px solid ${accent}`, background: done ? accent : "transparent", display: "flex", alignItems: "center", justifyContent: "center", marginTop: 2, flexShrink: 0 });
+  const mkCircle = (done) => ({ width: 20, height: 20, minWidth: 20, borderRadius: "50%", border: `2px solid ${accent}`, background: done ? accent : "transparent", display: "flex", alignItems: "center", justifyContent: "center", marginTop: 2, flexShrink: 0 });
   const empty = { textAlign: "center", opacity: 0.3, fontSize: 13, fontStyle: "italic", padding: "28px 0" };
-  const card = { background: `${accent}0d`, border: `1px solid ${accent}22`, borderRadius: 11, padding: "13px 14px", marginBottom: 10, display: "flex", alignItems: "flex-start", gap: 11 };
+  const flatCard = { background: `${accent}0d`, border: `1px solid ${accent}22`, borderRadius: 11, padding: "13px 14px", marginBottom: 10, display: "flex", alignItems: "flex-start", gap: 11 };
 
-  const tarefaProps = { accent, bg, text, todayStr: todayStr(), onToggle: toggleTarefa, onDelete: delTarefa, onAddAcao: addAcao, onToggleAcao: toggleAcao, onDelAcao: delAcao };
+  const cardProps = { accent, bg, text, today, onToggle: toggleTarefa, onDelete: delTarefa, onAddAcao: addAcao, onToggleAcao: toggleAcao, onDelAcao: delAcao, onToggleExpand: toggleExpand };
 
   const navItems = [
     { id: "home", label: "Início" },
@@ -235,7 +229,7 @@ export default function App() {
     const metas = getMetas(); const tarefas = getTarefas();
     const done = metas.filter(m => m.done).length;
     const pct = metas.length ? Math.round((done / metas.length) * 100) : 0;
-    const hoje = tarefas.filter(t => t.date === todayStr());
+    const hoje = tarefas.filter(t => t.date === today);
     const hojeDone = hoje.filter(t => t.done).length;
     return (
       <div>
@@ -261,7 +255,7 @@ export default function App() {
         </div>
         <div style={secLabel}>Tarefas de Hoje</div>
         {hoje.length === 0 ? <div style={empty}>Nenhuma tarefa para hoje</div> : hoje.map(t => (
-          <TarefaCard key={t.id} t={t} {...tarefaProps} />
+          <TarefaCard key={t.id} t={t} expanded={!!expandedCards[t.id]} {...cardProps} />
         ))}
       </div>
     );
@@ -275,8 +269,8 @@ export default function App() {
         <div style={secLabel}>Metas</div>
         {metas.length === 0 && <div style={empty}>Nenhuma meta cadastrada</div>}
         {metas.map(m => (
-          <div key={m.id} style={{ ...card, cursor: "pointer" }} onClick={() => toggleMeta(m.id)}>
-            <div style={circle(m.done)}>{m.done && <span style={{ color: bg, fontSize: 10 }}>✓</span>}</div>
+          <div key={m.id} style={{ ...flatCard, cursor: "pointer" }} onClick={() => toggleMeta(m.id)}>
+            <div style={mkCircle(m.done)}>{m.done && <span style={{ color: bg, fontSize: 10 }}>✓</span>}</div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, lineHeight: 1.5, textDecoration: m.done ? "line-through" : "none", opacity: m.done ? 0.4 : 1 }}>{m.text}</div>
               <div style={{ fontSize: 11, color: accent, opacity: 0.55, marginTop: 3 }}>{m.done ? `✓ ${m.doneAt}` : `Criada ${m.createdAt}`}</div>
@@ -293,7 +287,7 @@ export default function App() {
   };
 
   const TarefasView = () => {
-    const [taskDate, setTaskDate] = useState(todayStr());
+    const [taskDate, setTaskDate] = useState(today);
     const tarefas = getTarefas();
     const byDate = tarefas.reduce((a, t) => { (a[t.date] = a[t.date] || []).push(t); return a; }, {});
     const dates = Object.keys(byDate).sort().reverse();
@@ -304,15 +298,15 @@ export default function App() {
         {dates.length === 0 && <div style={empty}>Nenhuma tarefa cadastrada</div>}
         {dates.map(d => (
           <div key={d} style={{ marginBottom: 18 }}>
-            <div style={{ fontSize: 11, color: accent, letterSpacing: 2, marginBottom: 7, opacity: 0.6 }}>{d === todayStr() ? "📅 Hoje" : d}</div>
-            {byDate[d].map(t => <TarefaCard key={t.id} t={t} {...tarefaProps} />)}
+            <div style={{ fontSize: 11, color: accent, letterSpacing: 2, marginBottom: 7, opacity: 0.6 }}>{d === today ? "📅 Hoje" : d}</div>
+            {byDate[d].map(t => <TarefaCard key={t.id} t={t} expanded={!!expandedCards[t.id]} {...cardProps} />)}
           </div>
         ))}
         <div style={{ borderTop: `1px solid ${accent}18`, paddingTop: 18, marginTop: 8 }}>
           <div style={secLabel}>Nova Tarefa</div>
           <input type="date" value={taskDate} onChange={e => setTaskDate(e.target.value)} style={inp} />
           <LocalInput onCommit={(txt) => addTarefa(txt, taskDate)} placeholder="Título da tarefa... (Enter para salvar)" style={inp} />
-          <div style={{ fontSize: 11, opacity: 0.4, fontStyle: "italic", marginTop: -4 }}>Abra a tarefa com ▼ para adicionar ações.</div>
+          <div style={{ fontSize: 11, opacity: 0.4, fontStyle: "italic", marginTop: -4 }}>Abra com ▼ para adicionar ações.</div>
         </div>
       </div>
     );
@@ -335,8 +329,8 @@ export default function App() {
         </div>
         {md.length === 0 && td.length === 0 && <div style={empty}>Nenhum item concluído ainda</div>}
         {md.length > 0 && <><div style={secLabel}>Metas Concluídas</div>{md.map(m => (
-          <div key={m.id} style={{ ...card, opacity: 0.65 }}>
-            <div style={circle(true)}><span style={{ color: bg, fontSize: 10 }}>✓</span></div>
+          <div key={m.id} style={{ ...flatCard, opacity: 0.65 }}>
+            <div style={mkCircle(true)}><span style={{ color: bg, fontSize: 10 }}>✓</span></div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, textDecoration: "line-through", opacity: 0.5 }}>{m.text}</div>
               <div style={{ fontSize: 11, color: accent, opacity: 0.5, marginTop: 3 }}>Concluída em {m.doneAt}</div>
@@ -344,8 +338,8 @@ export default function App() {
           </div>
         ))}</>}
         {td.length > 0 && <><div style={{ ...secLabel, marginTop: 16 }}>Tarefas Concluídas</div>{td.map(t => (
-          <div key={t.id} style={{ ...card, opacity: 0.65 }}>
-            <div style={circle(true)}><span style={{ color: bg, fontSize: 10 }}>✓</span></div>
+          <div key={t.id} style={{ ...flatCard, opacity: 0.65 }}>
+            <div style={mkCircle(true)}><span style={{ color: bg, fontSize: 10 }}>✓</span></div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, textDecoration: "line-through", opacity: 0.5 }}>{t.titulo}</div>
               <div style={{ fontSize: 11, color: accent, opacity: 0.5, marginTop: 3 }}>{t.date}</div>
