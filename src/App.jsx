@@ -36,28 +36,18 @@ const THEMES = [
   { label: "Lilás", accent: "#b39ddb", bg: "#130f1f" },
 ];
 
-// Isolated text input - never causes parent re-render while typing
 function LocalInput({ onCommit, placeholder, style, multiline, rows }) {
   const [val, setVal] = useState("");
-  const handleKey = (e) => {
-    if (e.key === "Enter" && !multiline) { onCommit(val); setVal(""); }
-  };
+  const handleKey = (e) => { if (e.key === "Enter" && !multiline) { onCommit(val); setVal(""); } };
   const handleBlur = () => { if (val.trim()) { onCommit(val); setVal(""); } };
-  if (multiline) return (
-    <textarea value={val} onChange={e => setVal(e.target.value)} onBlur={handleBlur}
-      placeholder={placeholder} rows={rows || 3} style={{ ...style, resize: "none" }} />
-  );
-  return <input value={val} onChange={e => setVal(e.target.value)} onKeyDown={handleKey}
-    onBlur={handleBlur} placeholder={placeholder} style={style} />;
+  if (multiline) return <textarea value={val} onChange={e => setVal(e.target.value)} onBlur={handleBlur} placeholder={placeholder} rows={rows || 3} style={{ ...style, resize: "none" }} />;
+  return <input value={val} onChange={e => setVal(e.target.value)} onKeyDown={handleKey} onBlur={handleBlur} placeholder={placeholder} style={style} />;
 }
 
-// Isolated inline rename input
 function RenameInput({ initial, onSave, style }) {
   const [val, setVal] = useState(initial);
   useEffect(() => setVal(initial), [initial]);
-  return <input value={val} onChange={e => setVal(e.target.value)}
-    onBlur={() => onSave(val)} onKeyDown={e => e.key === "Enter" && onSave(val)}
-    style={style} />;
+  return <input value={val} onChange={e => setVal(e.target.value)} onBlur={() => onSave(val)} onKeyDown={e => e.key === "Enter" && onSave(val)} style={style} />;
 }
 
 export default function App() {
@@ -74,9 +64,7 @@ export default function App() {
 
   useEffect(() => {
     const loadAll = async () => {
-      const [cfg, men, tasks] = await Promise.all([
-        sbFetch("config"), sbFetch("mentees"), sbFetch("tasks")
-      ]);
+      const [cfg, men, tasks] = await Promise.all([sbFetch("config"), sbFetch("mentees"), sbFetch("tasks")]);
       if (cfg) setConfig(cfg);
       if (men) setMentees(men);
       if (tasks) setTaskData(tasks);
@@ -106,14 +94,34 @@ export default function App() {
   const addMeta = (txt) => { if (txt.trim()) updField("metas", [...getMetas(), { id: Date.now(), text: txt.trim(), done: false, createdAt: todayStr(), doneAt: null }]); };
   const toggleMeta = (id) => updField("metas", getMetas().map(m => m.id === id ? { ...m, done: !m.done, doneAt: !m.done ? todayStr() : null } : m));
   const delMeta = (id) => updField("metas", getMetas().filter(m => m.id !== id));
-  const addTarefa = (txt, date) => { if (txt.trim()) updField("tarefas", [...getTarefas(), { id: Date.now(), text: txt.trim(), date, done: false }]); };
+
+  const addTarefa = (titulo, date) => {
+    if (titulo.trim()) updField("tarefas", [...getTarefas(), { id: Date.now(), titulo: titulo.trim(), date, acoes: [], done: false }]);
+  };
   const toggleTarefa = (id) => updField("tarefas", getTarefas().map(t => t.id === id ? { ...t, done: !t.done } : t));
   const delTarefa = (id) => updField("tarefas", getTarefas().filter(t => t.id !== id));
+  const addAcao = (tarefaId, txt) => {
+    if (!txt.trim()) return;
+    updField("tarefas", getTarefas().map(t => t.id === tarefaId
+      ? { ...t, acoes: [...(t.acoes || []), { id: Date.now(), text: txt.trim(), done: false }] }
+      : t));
+  };
+  const toggleAcao = (tarefaId, acaoId) => {
+    updField("tarefas", getTarefas().map(t => t.id === tarefaId
+      ? { ...t, acoes: (t.acoes || []).map(a => a.id === acaoId ? { ...a, done: !a.done } : a) }
+      : t));
+  };
+  const delAcao = (tarefaId, acaoId) => {
+    updField("tarefas", getTarefas().map(t => t.id === tarefaId
+      ? { ...t, acoes: (t.acoes || []).filter(a => a.id !== acaoId) }
+      : t));
+  };
+
   const addMentee = () => setMentees(p => [...p, { id: Date.now(), name: `Mentorado ${p.length + 1}` }]);
   const renameMentee = (id, name) => setMentees(p => p.map(m => m.id === id ? { ...m, name } : m));
   const delMentee = (id) => { setMentees(p => p.filter(m => m.id !== id)); if (menteeId === id) setMenteeId(null); };
 
-  const card = { background: `${accent}0d`, border: `1px solid ${accent}22`, borderRadius: 11, padding: "13px 14px", marginBottom: 10, display: "flex", alignItems: "flex-start", gap: 11, cursor: "pointer" };
+  const card = { background: `${accent}0d`, border: `1px solid ${accent}22`, borderRadius: 11, padding: "13px 14px", marginBottom: 10 };
   const inp = { width: "100%", background: `${accent}0e`, border: `1px solid ${accent}28`, borderRadius: 8, padding: "11px 13px", color: text, fontSize: 14, fontFamily: "'Palatino Linotype',serif", outline: "none", boxSizing: "border-box", marginBottom: 8 };
   const primaryBtn = { background: accent, color: bg, border: "none", borderRadius: 8, padding: "11px 18px", fontSize: 13, fontWeight: "bold", cursor: "pointer", width: "100%", fontFamily: "'Palatino Linotype',serif", marginBottom: 8, letterSpacing: 0.6 };
   const ghostBtn = { background: "transparent", color: accent, border: `1px solid ${accent}38`, borderRadius: 8, padding: "11px 18px", fontSize: 13, cursor: "pointer", width: "100%", fontFamily: "'Palatino Linotype',serif", marginBottom: 8 };
@@ -143,6 +151,58 @@ export default function App() {
       </div>
     </div>
   );
+
+  // Tarefa card with expandable actions
+  const TarefaCard = ({ t }) => {
+    const [expanded, setExpanded] = useState(false);
+    const acoes = t.acoes || [];
+    const acoesFeitas = acoes.filter(a => a.done).length;
+    return (
+      <div style={{ ...card, cursor: "default" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 11 }}>
+          <div style={circle(t.done)} onClick={() => toggleTarefa(t.id)} role="button">
+            {t.done && <span style={{ color: bg, fontSize: 10 }}>✓</span>}
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ fontSize: 14, lineHeight: 1.5, fontWeight: "bold", textDecoration: t.done ? "line-through" : "none", opacity: t.done ? 0.4 : 1 }}>{t.titulo}</div>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                {acoes.length > 0 && <span style={{ fontSize: 11, color: accent, opacity: 0.65 }}>{acoesFeitas}/{acoes.length}</span>}
+                <button onClick={() => setExpanded(e => !e)} style={{ background: "none", border: "none", color: accent, cursor: "pointer", fontSize: 16, opacity: 0.6, padding: "0 2px" }}>
+                  {expanded ? "▲" : "▼"}
+                </button>
+                <button onClick={() => delTarefa(t.id)} style={{ background: "none", border: "none", color: accent, opacity: 0.3, cursor: "pointer", fontSize: 20, padding: "0 2px" }}>×</button>
+              </div>
+            </div>
+            <div style={{ fontSize: 11, color: accent, opacity: 0.5, marginTop: 2 }}>{t.date === todayStr() ? "📅 Hoje" : t.date}</div>
+          </div>
+        </div>
+
+        {expanded && (
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${accent}18` }}>
+            <div style={{ fontSize: 10, letterSpacing: 3, textTransform: "uppercase", color: accent, opacity: 0.6, marginBottom: 8 }}>Ações</div>
+            {acoes.length === 0 && <div style={{ fontSize: 12, opacity: 0.3, fontStyle: "italic", marginBottom: 8 }}>Nenhuma ação ainda</div>}
+            {acoes.map(a => (
+              <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 7 }}>
+                <div style={{ ...circle(a.done), width: 16, height: 16, minWidth: 16, borderRadius: 4 }} onClick={() => toggleAcao(t.id, a.id)} role="button">
+                  {a.done && <span style={{ color: bg, fontSize: 9 }}>✓</span>}
+                </div>
+                <span style={{ flex: 1, fontSize: 13, textDecoration: a.done ? "line-through" : "none", opacity: a.done ? 0.4 : 0.85 }}>{a.text}</span>
+                <button onClick={() => delAcao(t.id, a.id)} style={{ background: "none", border: "none", color: accent, opacity: 0.3, cursor: "pointer", fontSize: 17 }}>×</button>
+              </div>
+            ))}
+            <div style={{ marginTop: 8 }}>
+              <LocalInput
+                onCommit={(txt) => addAcao(t.id, txt)}
+                placeholder="Nova ação... (Enter para salvar)"
+                style={{ ...inp, marginBottom: 0, fontSize: 13, padding: "8px 12px" }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   if (loading) return (
     <div style={{ minHeight: "100vh", background: "#12121f", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Palatino Linotype',serif", color: "#f0ece0" }}>
@@ -203,10 +263,7 @@ export default function App() {
         </div>
         <div style={secLabel}>Tarefas de Hoje</div>
         {hoje.length === 0 ? <div style={empty}>Nenhuma tarefa para hoje</div> : hoje.map(t => (
-          <div key={t.id} style={card} onClick={() => toggleTarefa(t.id)}>
-            <div style={circle(t.done)}>{t.done && <span style={{ color: bg, fontSize: 10 }}>✓</span>}</div>
-            <span style={{ flex: 1, fontSize: 14, lineHeight: 1.5, textDecoration: t.done ? "line-through" : "none", opacity: t.done ? 0.4 : 1 }}>{t.text}</span>
-          </div>
+          <TarefaCard key={t.id} t={t} />
         ))}
       </div>
     );
@@ -214,14 +271,13 @@ export default function App() {
 
   const MetasView = () => {
     const metas = getMetas();
-    const [taskDate, setTaskDate] = useState(todayStr());
     return (
       <div>
         <MenteePicker />
         <div style={secLabel}>Metas</div>
         {metas.length === 0 && <div style={empty}>Nenhuma meta cadastrada</div>}
         {metas.map(m => (
-          <div key={m.id} style={card} onClick={() => toggleMeta(m.id)}>
+          <div key={m.id} style={{ ...card, display: "flex", alignItems: "flex-start", gap: 11, cursor: "pointer" }} onClick={() => toggleMeta(m.id)}>
             <div style={circle(m.done)}>{m.done && <span style={{ color: bg, fontSize: 10 }}>✓</span>}</div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, lineHeight: 1.5, textDecoration: m.done ? "line-through" : "none", opacity: m.done ? 0.4 : 1 }}>{m.text}</div>
@@ -251,19 +307,14 @@ export default function App() {
         {dates.map(d => (
           <div key={d} style={{ marginBottom: 18 }}>
             <div style={{ fontSize: 11, color: accent, letterSpacing: 2, marginBottom: 7, opacity: 0.6 }}>{d === todayStr() ? "📅 Hoje" : d}</div>
-            {byDate[d].map(t => (
-              <div key={t.id} style={card} onClick={() => toggleTarefa(t.id)}>
-                <div style={circle(t.done)}>{t.done && <span style={{ color: bg, fontSize: 10 }}>✓</span>}</div>
-                <span style={{ flex: 1, fontSize: 14, textDecoration: t.done ? "line-through" : "none", opacity: t.done ? 0.4 : 1 }}>{t.text}</span>
-                <button style={{ background: "none", border: "none", color: accent, opacity: 0.35, cursor: "pointer", fontSize: 20 }} onClick={e => { e.stopPropagation(); delTarefa(t.id); }}>×</button>
-              </div>
-            ))}
+            {byDate[d].map(t => <TarefaCard key={t.id} t={t} />)}
           </div>
         ))}
         <div style={{ borderTop: `1px solid ${accent}18`, paddingTop: 18, marginTop: 8 }}>
           <div style={secLabel}>Nova Tarefa</div>
           <input type="date" value={taskDate} onChange={e => setTaskDate(e.target.value)} style={inp} />
-          <LocalInput onCommit={(txt) => addTarefa(txt, taskDate)} placeholder="Descreva a tarefa e pressione Enter..." style={inp} />
+          <LocalInput onCommit={(txt) => addTarefa(txt, taskDate)} placeholder="Título da tarefa... (Enter para salvar)" style={inp} />
+          <div style={{ fontSize: 11, opacity: 0.4, fontStyle: "italic", marginTop: -4 }}>As ações podem ser adicionadas depois, dentro de cada tarefa.</div>
         </div>
       </div>
     );
@@ -286,7 +337,7 @@ export default function App() {
         </div>
         {md.length === 0 && td.length === 0 && <div style={empty}>Nenhum item concluído ainda</div>}
         {md.length > 0 && <><div style={secLabel}>Metas Concluídas</div>{md.map(m => (
-          <div key={m.id} style={{ ...card, opacity: 0.65 }}>
+          <div key={m.id} style={{ ...card, display: "flex", gap: 11, opacity: 0.65 }}>
             <div style={circle(true)}><span style={{ color: bg, fontSize: 10 }}>✓</span></div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, textDecoration: "line-through", opacity: 0.5 }}>{m.text}</div>
@@ -295,10 +346,10 @@ export default function App() {
           </div>
         ))}</>}
         {td.length > 0 && <><div style={{ ...secLabel, marginTop: 16 }}>Tarefas Concluídas</div>{td.map(t => (
-          <div key={t.id} style={{ ...card, opacity: 0.65 }}>
+          <div key={t.id} style={{ ...card, display: "flex", gap: 11, opacity: 0.65 }}>
             <div style={circle(true)}><span style={{ color: bg, fontSize: 10 }}>✓</span></div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, textDecoration: "line-through", opacity: 0.5 }}>{t.text}</div>
+              <div style={{ fontSize: 14, textDecoration: "line-through", opacity: 0.5 }}>{t.titulo}</div>
               <div style={{ fontSize: 11, color: accent, opacity: 0.5, marginTop: 3 }}>{t.date}</div>
             </div>
           </div>
